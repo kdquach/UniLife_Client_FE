@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+* {
+  text-decoration: none !important;
+}
+
+/* Fallbacks: ensure our semantic rounding classes always work */
+.rounded-surface {
+  border-radius: var(--radius-surface) !important;
+}
+
+.rounded-card {
+  border-radius: var(--radius-card) !important;
+}
+
+.rounded-input {
+  border-radius: var(--radius-input) !important;
+}
+
+/* Fallbacks: semantic color utility aliases (in case Tailwind config changes aren't hot-reloaded) */
+.bg-primary {
+  background-color: var(--primary) !important;
+}
+
+.bg-surface {
+  background-color: var(--surface) !important;
+}
+
+.bg-surfaceMuted {
+  background-color: var(--surface-muted) !important;
+}
+
+.text-primary {
+  color: var(--primary) !important;
+}
+
+.text-text {
+  color: var(--text) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-inverse {
+  color: var(--text-inverse) !important;
+}
+
+.border-border {
+  border-color: var(--border) !important;
+}
+
+.border-borderHover {
+  border-color: var(--border-hover) !important;
+}
+
+.border-primary {
+  border-color: var(--primary) !important;
+}
+
+.border-primaryHover {
+  border-color: var(--primary-hover) !important;
+}
+
+.hover\:bg-primaryHover:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.hover\:bg-primary:hover {
+  background-color: var(--primary) !important;
+}
+
+.hover\:text-inverse:hover {
+  color: var(--text-inverse) !important;
+}
+
+:root {
+  --header-h: 64px;
+
+  /* LAYOUT */
+  --app-container-vw: 0.9;
+  /* 90vw */
+  --app-container-gap: 24px;
+
+  /* RIGHT PANEL */
+  --right-panel-w: 380px;
+  --right-panel-pill-w: 240px;
+  --right-panel-pill-h: 40px;
+
+  /* COLORS */
+  --background: #fdfdfd;
+  --app-bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-muted: #f5f5f5;
+
+  /* TEXT */
+  --text: #0f232e;
+  --text-muted: #5f6b73;
+  --text-inverse: #ffffff;
+
+  /* ACCENT */
+  --primary: #ff5532;
+  --primary-hover: #ff6a4a;
+  --primary-active: #e64a2b;
+
+  /* SEMANTIC */
+  --success: #2e7d32;
+  --warning: #ffb80e;
+  --danger: #872822;
+  --info: #1976d2;
+
+  /* BORDER & DIVIDER */
+  --border: #d9d9d9;
+  --border-hover: #c4c4c4;
+  --border-strong: #c4c4c4;
+  --divider: #ececec;
+
+  /* RADIUS & SHADOW */
+  --radius-surface: 20px;
+  --radius-card: 16px;
+  --radius-input: 14px;
+  --shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.03);
+  --shadow-surface: 0 8px 30px rgba(0, 0, 0, 0.04);
+
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--text);
+  background-color: var(--app-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared centered container (matches RightPanelShell offset logic) */
+.app-container {
+  width: calc(var(--app-container-vw) * 100vw);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Google Material Symbols (Rounded) */
+.material-symbols-rounded {
+  font-variation-settings: "FILL"0, "wght"500, "GRAD"0, "opsz"24;
+  display: inline-block;
+  line-height: 1;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.material-symbols-rounded.fill {
+  font-variation-settings: "FILL"1, "wght"600, "GRAD"0, "opsz"24;
+}
+
+a {
+  font-weight: 500;
+  color: inherit;
+  text-decoration: inherit;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--app-bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Glass / gradient header (no borders; separation via shadow only) */
+.app-header {
+  padding: 16px 14px;
+  background: linear-gradient(to bottom,
+      rgba(245, 246, 248),
+      rgba(245, 246, 248, 0.96) 60%,
+      rgba(245, 246, 248, 0.85) 85%,
+      rgba(245, 246, 248, 0));
+  backdrop-filter: blur(10px);
+}

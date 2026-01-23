@@ -1,0 +1,54 @@
+/* Ant Design: match app tokens (colors, borders, radii). */
+
+.ant-select .ant-select-selector {
+	background: var(--surface) !important;
+	border: 1px solid var(--border) !important;
+	box-shadow: none !important;
+	border-radius: var(--radius-input) !important;
+	padding: 0 10px !important;
+}
+
+.ant-select:hover .ant-select-selector {
+	border-color: var(--border-hover) !important;
+}
+
+.ant-select-focused .ant-select-selector {
+	border-color: var(--primary) !important;
+	box-shadow: 0 0 0 4px rgba(255, 85, 50, 0.18) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu {
+	background: var(--surface) !important;
+	border: 1px solid var(--border) !important;
+	border-radius: var(--radius-card) !important;
+	box-shadow: var(--shadow-panel) !important;
+	padding: 8px !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item,
+.ant-dropdown .ant-dropdown-menu-submenu-title {
+	border-radius: 12px !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item:hover,
+.ant-dropdown .ant-dropdown-menu-submenu-title:hover {
+	background: rgba(255, 85, 50, 0.08) !important;
+}
+
+.ant-dropdown .ant-dropdown-menu-item-divider {
+	display: block !important;
+	background: var(--divider) !important;
+	margin: 8px 0 !important;
+}
+
+/* Tooltip */
+.ant-tooltip .ant-tooltip-inner {
+	background: var(--text) !important;
+	color: var(--text-inverse) !important;
+	border-radius: 12px !important;
+	box-shadow: var(--shadow-card) !important;
+}
+
+.ant-tooltip .ant-tooltip-arrow::before {
+	background: var(--text) !important;
+}
