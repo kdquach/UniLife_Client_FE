@@ -1,33 +1,98 @@
-import { setAccessToken } from "@/utils/storage";
+import { api } from "@/services/axios.config";
+import { setAccessToken, clearAccessToken } from "@/utils/storage";
 
-function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+const USER_KEY = "unilife_user";
 
+/**
+ * Login user
+ * @param {Object} payload - { email, password }
+ * @returns {Promise<Object>} - { token, user }
+ */
 export async function login(payload) {
-  // Mock login (offline-first)
-  await wait(350);
+  const { email, password } = payload;
 
-  const email = String(payload?.email || "").trim();
-  const accessToken = email ? "mock-access-token" : "";
-  if (accessToken) setAccessToken(accessToken);
+  const response = await api.post("/auth/login", { email, password });
+
+  const { token, data } = response.data;
+
+  // Lưu token vào localStorage
+  if (token) {
+    setAccessToken(token);
+  }
+
+  // Lưu thông tin user vào localStorage
+  if (data?.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  }
 
   return {
-    accessToken,
-    user: {
-      id: "mock-user",
-      email: email || "user@mock.local",
-      name: "Unilife User",
-    },
+    token,
+    user: data?.user,
   };
 }
 
+/**
+ * Register new user
+ * @param {Object} payload - { fullName, email, password, phone }
+ * @returns {Promise<Object>} - { token, user }
+ */
 export async function register(payload) {
-  // Mock register
-  await wait(450);
+  const { fullName, email, password, phone } = payload;
+
+  const response = await api.post("/auth/register", {
+    fullName,
+    email,
+    password,
+    phone,
+  });
+
+  const { token, data } = response.data;
+
+  // Lưu token vào localStorage
+  if (token) {
+    setAccessToken(token);
+  }
+
+  // Lưu thông tin user vào localStorage
+  if (data?.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  }
+
   return {
-    id: `mock-${Date.now()}`,
-    email: String(payload?.email || "user@mock.local").trim(),
-    createdAt: new Date().toISOString(),
+    token,
+    user: data?.user,
   };
+}
+
+/**
+ * Logout user
+ * @returns {Promise<void>}
+ */
+export async function logout() {
+  try {
+    await api.post("/auth/logout");
+  } catch (error) {
+    // Ignore error, still clear local data
+    console.error("Logout API error:", error);
+  } finally {
+    clearAccessToken();
+    localStorage.removeItem(USER_KEY);
+  }
+}
+
+/**
+ * Get current user from localStorage
+ * @returns {Object|null}
+ */
+export function getCurrentUser() {
+  const user = localStorage.getItem(USER_KEY);
+  return user ? JSON.parse(user) : null;
+}
+
+/**
+ * Check if user is authenticated
+ * @returns {boolean}
+ */
+export function isAuthenticated() {
+  return !!localStorage.getItem("unilife_access_token");
 }
