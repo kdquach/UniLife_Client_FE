@@ -1,9 +1,37 @@
 import { Dropdown } from "antd";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import imageNotFound from "@/assets/images/image-not-found.png";
+import { logout as logoutService } from "@/services/auth.service";
 
 export default function ProfileCluster({ isAuthenticated, user }) {
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout
+      await logoutService();
+
+      // Hiển thị thông báo thành công
+      toast.success("Đăng xuất thành công", {
+        description: "Hẹn gặp lại bạn!",
+        duration: 3000,
+      });
+
+      // Chuyển hướng về trang đăng nhập
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
+    } catch (error) {
+      console.error("Logout error:", error);
+
+      // Hiển thị thông báo lỗi
+      toast.error("Có lỗi xảy ra khi đăng xuất", {
+        description: error.response?.data?.message || "Vui lòng thử lại",
+        duration: 3000,
+      });
+    }
+  };
 
   const profileMenu = [
     { key: "profile", label: "View profile" },
@@ -48,7 +76,9 @@ export default function ProfileCluster({ isAuthenticated, user }) {
       menu={{
         items: profileMenu,
         onClick: ({ key }) => {
-          if (key === "logout") navigate("/login");
+          if (key === "logout") {
+            handleLogout();
+          }
         },
       }}
     >
@@ -65,10 +95,7 @@ export default function ProfileCluster({ isAuthenticated, user }) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <img
-              src={imageNotFound}
-              loading="lazy"
-            />
+            <img src={imageNotFound} loading="lazy" />
           )}
         </span>
 

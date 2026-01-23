@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
 import Input from "@/components/Input.jsx";
 import Button from "@/components/Button.jsx";
 import { login } from "@/services/auth.service";
@@ -20,8 +21,16 @@ export default function Login() {
       const response = await login({ email, password });
       console.log("Login successful:", response);
 
+      // Hiển thị thông báo thành công
+      toast.success("Đăng nhập thành công!", {
+        description: "Chào mừng bạn quay trở lại UniLife",
+        duration: 3000,
+      });
+
       // Chuyển hướng sau khi đăng nhập thành công
-      navigate("/");
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
     } catch (err) {
       console.error("Login error:", err);
       // Xử lý lỗi từ API backend
@@ -29,7 +38,14 @@ export default function Login() {
         err.response?.data?.message ||
         err.message ||
         "Email hoặc mật khẩu không đúng";
+
       setError(errorMessage);
+
+      // Hiển thị thông báo lỗi
+      toast.error("Đăng nhập thất bại", {
+        description: errorMessage,
+        duration: 4000,
+      });
     } finally {
       setLoading(false);
     }

@@ -6,38 +6,43 @@ import ProfileCluster from "@/components/header/ProfileCluster.jsx";
 import CampusSelectModal from "@/components/header/CampusSelectModal.jsx";
 import CampusTrigger from "@/components/header/CampusTrigger.jsx";
 import NotificationDropdown from "@/components/header/NotificationDropdown.jsx";
+import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
 
 const notifications = [
   { id: "1", title: "Đơn hàng đã xác nhận", time: "2 phút trước" },
   { id: "2", title: "Có khuyến mãi mới", time: "1 giờ trước" },
 ];
 
-
 const CAMPUSES = [
   {
     key: "hcm",
     name: "Hồ Chí Minh",
-    image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img55.svg",
+    image:
+      "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img55.svg",
   },
   {
     key: "ct",
     name: "Cần Thơ",
-    image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img4.svg",
+    image:
+      "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img4.svg",
   },
   {
     key: "hn",
     name: "Hà Nội",
-    image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img3.svg",
+    image:
+      "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img3.svg",
   },
   {
     key: "qn",
     name: "Quy Nhơn",
-    image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img2.svg",
+    image:
+      "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img2.svg",
   },
   {
     key: "dn",
     name: "Đà Nẵng",
-    image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img1.svg",
+    image:
+      "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img1.svg",
   },
 ];
 
@@ -73,15 +78,24 @@ export default function AppHeader() {
   const [campus, setCampus] = useState("hcm");
   const [openCampus, setOpenCampus] = useState(false);
 
-  const isAuthenticated = true;
-  const user = { name: "Unilife User" };
+  // Lấy trạng thái đăng nhập và thông tin user từ localStorage
+  const userAuthenticated = isAuthenticated();
+  const currentUser = getCurrentUser();
 
   return (
     <header className="app-header sticky top-0 z-50 w-full">
       <div className="app-container flex h-(--header-h) items-center gap-4 px-4 md:px-6">
         <div className="flex items-center gap-3">
-          <img src={logomd} alt="Brand logo" className="block h-8 w-auto md:hidden" />
-          <img src={logolg} alt="Brand logo" className="hidden h-9 w-auto md:block" />
+          <img
+            src={logomd}
+            alt="Brand logo"
+            className="block h-8 w-auto md:hidden"
+          />
+          <img
+            src={logolg}
+            alt="Brand logo"
+            className="hidden h-9 w-auto md:block"
+          />
         </div>
 
         <div className="flex flex-1 items-center justify-center">
@@ -89,18 +103,26 @@ export default function AppHeader() {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               <MaterialIcon name="search" className="text-[18px]" />
             </span>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search menu..." className="h-10 w-full rounded-full bg-white/80 pl-10 pr-4 text-sm outline-none shadow-card transition duration-200 placeholder:text-muted hover:bg-white hover:shadow-lift focus:shadow-[0_0_0_4px_rgba(255,85,50,0.18)]" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search menu..."
+              className="h-10 w-full rounded-full bg-white/80 pl-10 pr-4 text-sm outline-none shadow-card transition duration-200 placeholder:text-muted hover:bg-white hover:shadow-lift focus:shadow-[0_0_0_4px_rgba(255,85,50,0.18)]"
+            />
           </div>
         </div>
 
-        <CampusTrigger campus={CAMPUS_LABEL[campus]} onClick={() => setOpenCampus(true)} />
+        <CampusTrigger
+          campus={CAMPUS_LABEL[campus]}
+          onClick={() => setOpenCampus(true)}
+        />
 
         <div className="flex items-center gap-3">
           <NotificationDropdown notifications={notifications} />
 
           <ProfileCluster
-            isAuthenticated={isAuthenticated}
-            user={user}
+            isAuthenticated={userAuthenticated}
+            user={currentUser}
           />
         </div>
       </div>

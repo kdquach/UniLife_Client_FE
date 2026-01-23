@@ -1,5 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { ConfigProvider } from "antd";
+import { Toaster } from "sonner";
 import { router } from "./routes/index.jsx";
 import { AuthProvider } from "./store/auth.store.js";
 import { CartProvider } from "./store/cart.store.js";
@@ -43,6 +44,7 @@ export default function App() {
         <CartProvider>
           <RightPanelProvider>
             <RouterProvider router={router} />
+            <Toaster position="top-right" richColors expand={false} />
           </RightPanelProvider>
         </CartProvider>
       </AuthProvider>
