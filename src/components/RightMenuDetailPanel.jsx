@@ -1,22 +1,33 @@
-import clsx from "clsx";
-import { MENU_ITEMS } from "@/pages/Menu/menu.data";
-import { useCartStore } from "@/store/cart.store.js";
-import { useRightPanel } from "@/store/rightPanel.store.js";
-import { money } from "@/utils/currency.js";
-import MaterialIcon from "@/components/MaterialIcon.jsx";
-import imageNotFound from "@/assets/images/image-not-found.png";
+import clsx from 'clsx';
+import { useEffect } from 'react';
+import { useCartStore } from '@/store/cart.store.js';
+import { useRightPanel } from '@/store/rightPanel.store.js';
+import { useProduct } from '@/hooks/useProduct.js';
+import { money } from '@/utils/currency.js';
+import MaterialIcon from '@/components/MaterialIcon.jsx';
+import imageNotFound from '@/assets/images/image-not-found.png';
 
 export default function RightMenuDetailPanel({ allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
-
-  const item = MENU_ITEMS.find((x) => x.id === panel.detailItemId) || null;
+  const { product: item, loading, fetchById } = useProduct();
   const qty = panel.detailQty;
+
+  // Fetch product detail when detailItemId changes
+  useEffect(() => {
+    if (panel.detailItemId) {
+      fetchById(panel.detailItemId).catch((err) => {
+        console.error('Failed to fetch product detail:', err);
+      });
+    }
+  }, [panel.detailItemId, fetchById]);
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-4">
-        <h2 className="text-sm font-semibold text-text">{item?.name || "Chi tiết"}</h2>
+        <h2 className="text-sm font-semibold text-text">
+          {item?.name || 'Chi tiết'}
+        </h2>
 
         <div className="flex items-center gap-2">
           <button
@@ -43,11 +54,22 @@ export default function RightMenuDetailPanel({ allowCollapse = true }) {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {!item ? (
+        {loading && (
+          <div className="grid h-full place-items-center p-8 text-center text-slate-600">
+            <div className="space-y-2">
+              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+              <p>Đang tải...</p>
+            </div>
+          </div>
+        )}
+
+        {!loading && !item && (
           <div className="grid h-full place-items-center p-8 text-center text-slate-600">
             Chọn món ăn để xem chi tiết.
           </div>
-        ) : (
+        )}
+
+        {!loading && item && (
           <>
             <div className="aspect-16/10 w-full bg-slate-100">
               {item.image ? (
@@ -70,8 +92,12 @@ export default function RightMenuDetailPanel({ allowCollapse = true }) {
             <div className="grid gap-4 p-5">
               <div>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-text">{item.name}</h3>
-                  <span className="text-lg font-semibold text-primary">{money(item.price)}</span>
+                  <h3 className="text-lg font-semibold text-text">
+                    {item.name}
+                  </h3>
+                  <span className="text-lg font-semibold text-primary">
+                    {money(item.price)}
+                  </span>
                 </div>
                 <p className="text-sm text-muted">{item.description}</p>
               </div>
@@ -82,12 +108,16 @@ export default function RightMenuDetailPanel({ allowCollapse = true }) {
                   <button
                     type="button"
                     className="grid h-9 w-9 place-items-center rounded-lg bg-white shadow-card transition duration-200 hover:bg-slate-50 hover:shadow-lift"
-                    onClick={() => panel.setDetailQty((q) => Math.max(1, q - 1))}
+                    onClick={() =>
+                      panel.setDetailQty((q) => Math.max(1, q - 1))
+                    }
                     aria-label="Decrease"
                   >
                     −
                   </button>
-                  <span className="w-10 text-center text-sm font-semibold">{qty}</span>
+                  <span className="w-10 text-center text-sm font-semibold">
+                    {qty}
+                  </span>
                   <button
                     type="button"
                     className="grid h-9 w-9 place-items-center rounded-lg bg-white shadow-card transition duration-200 hover:bg-slate-50 hover:shadow-lift"
@@ -106,15 +136,17 @@ export default function RightMenuDetailPanel({ allowCollapse = true }) {
       <div className="p-5">
         <button
           type="button"
-          disabled={!item}
+          disabled={!item || loading}
           onClick={() => {
             if (!item) return;
-            cart.addItem(item.id, qty);
+            cart.addItem(item._id, qty);
             panel.openCart();
           }}
           className={clsx(
-            "h-11 w-full rounded-card text-sm font-semibold text-white shadow-card transition duration-200",
-            item ? "bg-primary hover:bg-primaryHover hover:shadow-lift" : "bg-surfaceMuted text-muted"
+            'h-11 w-full rounded-card text-sm font-semibold text-white shadow-card transition duration-200',
+            item && !loading
+              ? 'bg-primary hover:bg-primaryHover hover:shadow-lift'
+              : 'bg-surfaceMuted text-muted'
           )}
         >
           Add to Cart · {item ? money(item.price * qty) : money(0)}
