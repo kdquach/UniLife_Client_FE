@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import Input from "@/components/Input.jsx";
 import Button from "@/components/Button.jsx";
-import { register } from "@/services/auth.service";
+import { sendRegisterOTP } from "@/services/auth.service";
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -17,22 +17,29 @@ export default function Register() {
   async function onSubmit(e) {
     e.preventDefault();
     setError("");
+
+    // Validate password
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await register({ fullName, email, password, phone });
-      console.log("Register successful:", response);
+      const userData = { fullName, email, password, phone };
+      await sendRegisterOTP(userData);
 
       // Hiển thị thông báo thành công
-      toast.success("Đăng ký thành công!", {
-        description: "Chào mừng bạn đến với UniLife",
+      toast.success("Đã gửi mã OTP!", {
+        description: "Vui lòng kiểm tra email của bạn",
         duration: 3000,
       });
 
-      // Chuyển hướng về trang chủ sau khi đăng ký thành công
-      setTimeout(() => {
-        navigate("/");
-      }, 500);
+      // Chuyển hướng đến trang xác thực OTP
+      navigate("/verify-otp", {
+        state: { email, userData },
+      });
     } catch (err) {
       console.error("Register error:", err);
       const errorMessage =
@@ -104,7 +111,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu"
+              placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
               required
             />
           </div>
@@ -114,7 +121,7 @@ export default function Register() {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4"
           >
-            {loading ? "Đang đăng ký..." : "Đăng ký"}
+            {loading ? "Đang xử lý..." : "Đăng ký"}
           </Button>
 
           <p className="text-center text-sm text-gray-600">

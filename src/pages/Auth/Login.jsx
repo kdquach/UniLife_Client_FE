@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { GoogleLogin } from "@react-oauth/google";
 import Input from "@/components/Input.jsx";
 import Button from "@/components/Button.jsx";
-import { login } from "@/services/auth.service";
+import { login, loginWithGoogle } from "@/services/auth.service";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   async function onSubmit(e) {
@@ -50,6 +52,50 @@ export default function Login() {
       setLoading(false);
     }
   }
+
+  // Handle Google login success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleLoading(true);
+    setError("");
+
+    try {
+      // credentialResponse.credential contains the ID token
+      const response = await loginWithGoogle(credentialResponse.credential);
+      console.log("Google login successful:", response);
+
+      toast.success("Đăng nhập thành công!", {
+        description: "Chào mừng bạn đến với UniLife",
+        duration: 3000,
+      });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
+    } catch (err) {
+      console.error("Google login error:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Đăng nhập bằng Google thất bại";
+
+      setError(errorMessage);
+      toast.error("Đăng nhập thất bại", {
+        description: errorMessage,
+        duration: 4000,
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // Handle Google login error
+  const handleGoogleError = () => {
+    setError("Đăng nhập bằng Google thất bại");
+    toast.error("Đăng nhập thất bại", {
+      description: "Không thể kết nối với Google. Vui lòng thử lại.",
+      duration: 4000,
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -123,6 +169,29 @@ export default function Login() {
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Hoặc</span>
+            </div>
+          </div>
+
+          {/* Google Login Button */}
+          <div className="w-full flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap={false}
+              text="signin_with"
+              shape="rectangular"
+              locale="vi_VN"
+              width="100%"
+            />
+          </div>
 
           <p className="text-center text-sm text-gray-600">
             Chưa có tài khoản?{" "}

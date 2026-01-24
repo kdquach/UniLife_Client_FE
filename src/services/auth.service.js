@@ -32,7 +32,135 @@ export async function login(payload) {
 }
 
 /**
- * Register new user
+ * Login with Google
+ * @param {String} idToken - Google ID Token from Google OAuth
+ * @returns {Promise<Object>} - { token, user }
+ */
+export async function loginWithGoogle(idToken) {
+  const response = await api.post("/auth/google", { idToken });
+
+  const { token, data } = response.data;
+
+  // Lưu token vào localStorage
+  if (token) {
+    setAccessToken(token);
+  }
+
+  // Lưu thông tin user vào localStorage
+  if (data?.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  }
+
+  return {
+    token,
+    user: data?.user,
+  };
+}
+
+/**
+ * Send OTP for registration
+ * @param {Object} payload - { fullName, email, password, phone }
+ * @returns {Promise<Object>} - { email }
+ */
+export async function sendRegisterOTP(payload) {
+  const { fullName, email, password, phone } = payload;
+
+  const response = await api.post("/auth/register/send-otp", {
+    fullName,
+    email,
+    password,
+    phone,
+  });
+
+  return {
+    email: response.data.data?.email,
+    message: response.data.message,
+  };
+}
+
+/**
+ * Verify OTP and complete registration
+ * @param {Object} payload - { email, otp }
+ * @returns {Promise<Object>} - { token, user }
+ */
+export async function verifyRegisterOTP(payload) {
+  const { email, otp } = payload;
+
+  const response = await api.post("/auth/register/verify-otp", { email, otp });
+
+  const { token, data } = response.data;
+
+  // Lưu token vào localStorage
+  if (token) {
+    setAccessToken(token);
+  }
+
+  // Lưu thông tin user vào localStorage
+  if (data?.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  }
+
+  return {
+    token,
+    user: data?.user,
+  };
+}
+
+/**
+ * Send OTP for forgot password
+ * @param {string} email - User email
+ * @returns {Promise<Object>} - { email, message }
+ */
+export async function sendForgotPasswordOTP(email) {
+  const response = await api.post("/auth/forgot-password", { email });
+
+  return {
+    email: response.data.data?.email,
+    message: response.data.message,
+  };
+}
+
+/**
+ * Verify OTP for forgot password
+ * @param {Object} payload - { email, otp }
+ * @returns {Promise<Object>} - { resetToken, email }
+ */
+export async function verifyForgotPasswordOTP(payload) {
+  const { email, otp } = payload;
+
+  const response = await api.post("/auth/forgot-password/verify-otp", {
+    email,
+    otp,
+  });
+
+  return {
+    resetToken: response.data.data?.resetToken,
+    email: response.data.data?.email,
+    message: response.data.message,
+  };
+}
+
+/**
+ * Reset password with token
+ * @param {Object} payload - { email, resetToken, newPassword }
+ * @returns {Promise<Object>} - { message }
+ */
+export async function resetPassword(payload) {
+  const { email, resetToken, newPassword } = payload;
+
+  const response = await api.post("/auth/reset-password", {
+    email,
+    resetToken,
+    newPassword,
+  });
+
+  return {
+    message: response.data.message,
+  };
+}
+
+/**
+ * Register new user (legacy - without OTP)
  * @param {Object} payload - { fullName, email, password, phone }
  * @returns {Promise<Object>} - { token, user }
  */
