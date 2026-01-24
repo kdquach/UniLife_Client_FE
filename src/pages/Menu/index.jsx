@@ -1,10 +1,12 @@
-import clsx from "clsx";
-import { useMemo, useState } from "react";
-import { CATEGORIES, MENU_ITEMS } from "./menu.data";
-import { useCartStore } from "@/store/cart.store.js";
-import { useRightPanel } from "@/store/rightPanel.store.js";
-import ProductCard from "@/components/ProductCard.jsx";
-import MaterialIcon from "@/components/MaterialIcon.jsx";
+import clsx from 'clsx';
+import { useMemo, useState, useEffect } from 'react';
+import { useCartStore } from '@/store/cart.store.js';
+import { useRightPanel } from '@/store/rightPanel.store.js';
+import { useProduct } from '@/hooks/useProduct.js';
+import ProductCard from '@/components/ProductCard.jsx';
+import MaterialIcon from '@/components/MaterialIcon.jsx';
+import Loader from '@/components/Loader.jsx';
+import EmptyState from '@/components/EmptyState.jsx';
 
 function Chip({ active, children, onClick }) {
   return (
@@ -12,10 +14,10 @@ function Chip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={clsx(
-        "rounded-full px-4 py-1.5 text-sm font-medium shadow-card transition duration-200",
+        'rounded-full px-4 py-1.5 text-sm font-medium shadow-card transition duration-200',
         active
-          ? "bg-primary text-inverse shadow-lift"
-          : "bg-white/80 text-muted hover:bg-white hover:shadow-lift"
+          ? 'bg-primary text-inverse shadow-lift'
+          : 'bg-white/80 text-muted hover:bg-white hover:shadow-lift'
       )}
     >
       {children}
@@ -26,65 +28,111 @@ function Chip({ active, children, onClick }) {
 export default function MenuPage() {
   const cart = useCartStore();
   const panel = useRightPanel();
-  const [activeCategory, setActiveCategory] = useState("All");
+  const { products, loading, error, fetchAll } = useProduct();
+  const [activeCategory, setActiveCategory] = useState('All');
   const [wishlist, setWishlist] = useState(() => new Set());
 
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchAll({ limit: 100, status: 'available' }).catch((err) => {
+      console.error('Failed to fetch products:', err);
+    });
+  }, [fetchAll]);
+
+  // Extract unique categories from products
+  const categories = useMemo(() => {
+    const cats = new Set(
+      products.map((p) => p.categoryId?.name).filter(Boolean)
+    );
+    return ['All', ...Array.from(cats).sort()];
+  }, [products]);
+
   const items = useMemo(() => {
-    if (activeCategory === "All") return MENU_ITEMS;
-    return MENU_ITEMS.filter((x) => x.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === 'All') return products;
+    return products.filter((x) => x.categoryId?.name === activeCategory);
+  }, [activeCategory, products]);
 
   return (
     <div className="grid gap-6">
       <section className="grid min-w-0 gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text">Menu</h1>
-          <p className="text-sm text-muted">Choose from our delicious selection</p>
+          <p className="text-sm text-muted">
+            Choose from our delicious selection
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {CATEGORIES.map((c) => (
-            <Chip key={c} active={activeCategory === c} onClick={() => setActiveCategory(c)}>
-              {c}
-            </Chip>
-          ))}
-        </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-12">
+            <Loader />
+          </div>
+        )}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {items.map((it) => (
-            <div
-              key={it.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => panel.openDetail(it.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") panel.openDetail(it.id);
-              }}
-              className="text-left"
+        {/* Error State */}
+        {error && !loading && (
+          <div className="rounded-lg bg-red-50 p-4 text-red-700">
+            <p className="font-medium">Failed to load menu</p>
+            <p className="text-sm">{error}</p>
+            <button
+              onClick={() => fetchAll({ limit: 100, status: 'available' })}
+              className="mt-3 rounded bg-red-700 px-4 py-2 text-white hover:bg-red-800"
             >
-              <ProductCard
-                image={it.image}
-                name={it.name}
-                description={it.description}
-                price={it.price}
-                inCart={cart.lines?.some((l) => l.itemId === it.id)}
-                wishlisted={wishlist.has(it.id)}
-                onToggleWishlist={() => {
-                  setWishlist((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(it.id)) next.delete(it.id);
-                    else next.add(it.id);
-                    return next;
-                  });
-                }}
-                onAddToCart={() => {
-                  cart.addItem(it.id, 1);
-                  panel.openCart();
-                }}
-              />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Content */}
+        {!loading && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {categories.map((c) => (
+                <Chip
+                  key={c}
+                  active={activeCategory === c}
+                  onClick={() => setActiveCategory(c)}
+                >
+                  {c}
+                </Chip>
+              ))}
             </div>
-          ))}
-        </div>
+
+            {items.length === 0 ? (
+              <EmptyState
+                title="No items available"
+                description="No products found for the selected category"
+              />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {items.map((it) => (
+                  <ProductCard
+                    key={it._id}
+                    productId={it._id}
+                    image={it.image}
+                    name={it.name}
+                    description={it.description}
+                    price={it.price}
+                    inCart={cart.lines?.some((l) => l.itemId === it._id)}
+                    wishlisted={wishlist.has(it._id)}
+                    onToggleWishlist={() => {
+                      setWishlist((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(it._id)) next.delete(it._id);
+                        else next.add(it._id);
+                        return next;
+                      });
+                    }}
+                    onAddToCart={() => {
+                      cart.addItem(it._id, 1);
+                      panel.openCart();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </section>
     </div>
   );
