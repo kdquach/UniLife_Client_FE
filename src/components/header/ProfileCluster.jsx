@@ -34,11 +34,11 @@ export default function ProfileCluster({ isAuthenticated, user }) {
   };
 
   const profileMenu = [
-    { key: "profile", label: "View profile" },
-    { key: "wallet", label: "Wallet" },
-    { key: "setting", label: "Setting" },
+    { key: "profile", label: "Hồ sơ" },
+    { key: "wallet", label: "Ví" },
+    { key: "setting", label: "Cài đặt" },
     { type: "divider" },
-    { key: "logout", label: "Log out" },
+    { key: "logout", label: "Đăng xuất" },
   ];
 
   // =======================
@@ -76,6 +76,10 @@ export default function ProfileCluster({ isAuthenticated, user }) {
       menu={{
         items: profileMenu,
         onClick: ({ key }) => {
+          if (key === "profile") {
+            navigate("/profile");
+            return;
+          }
           if (key === "logout") {
             handleLogout();
           }
@@ -101,7 +105,7 @@ export default function ProfileCluster({ isAuthenticated, user }) {
 
         {/* Username */}
         <span className="hidden sm:block text-sm font-semibold">
-          {user?.name ?? "Unilife User"}
+          {user?.fullName ?? user?.name ?? "Unilife User"}
         </span>
       </button>
     </Dropdown>
