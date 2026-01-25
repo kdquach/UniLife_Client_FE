@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
+import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 import Loader from '@/components/Loader.jsx';
@@ -30,7 +31,7 @@ export default function MenuPage() {
   const panel = useRightPanel();
   const { products, loading, error, fetchAll } = useProduct();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [wishlist, setWishlist] = useState(() => new Set());
+  const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
 
   // Fetch products on component mount
   useEffect(() => {
@@ -38,6 +39,13 @@ export default function MenuPage() {
       console.error('Failed to fetch products:', err);
     });
   }, [fetchAll]);
+
+  // Fetch wishlist on mount (requires authenticated user)
+  useEffect(() => {
+    fetchWishlist().catch((err) => {
+      console.warn('Wishlist not loaded:', err?.message || err);
+    });
+  }, [fetchWishlist]);
 
   // Extract unique categories from products
   const categories = useMemo(() => {
@@ -114,13 +122,10 @@ export default function MenuPage() {
                     description={it.description}
                     price={it.price}
                     inCart={cart.lines?.some((l) => l.itemId === it._id)}
-                    wishlisted={wishlist.has(it._id)}
+                    wishlisted={wishlistIds.has(it._id)}
                     onToggleWishlist={() => {
-                      setWishlist((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(it._id)) next.delete(it._id);
-                        else next.add(it._id);
-                        return next;
+                      toggleWishlist(it._id).catch((err) => {
+                        console.error('Toggle wishlist failed:', err);
                       });
                     }}
                     onAddToCart={() => {
