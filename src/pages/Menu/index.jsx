@@ -4,6 +4,7 @@ import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
 import { useCampusStore } from '@/store/useCampusStore';
+import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
 import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
@@ -31,7 +32,7 @@ export default function MenuPage() {
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [wishlist, setWishlist] = useState(() => new Set());
+  const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
 
   // Fetch products when selectedCanteen changes
   useEffect(() => {
@@ -44,6 +45,13 @@ export default function MenuPage() {
     setActiveCategory('All');
     // eslint-disable-next-line
   }, [selectedCanteen?.id]);
+
+  // Fetch wishlist on mount (requires authenticated user)
+  useEffect(() => {
+    fetchWishlist().catch((err) => {
+      console.warn('Wishlist not loaded:', err?.message || err);
+    });
+  }, [fetchWishlist]);
 
   // Extract unique categories from products
   const categories = useMemo(() => {
@@ -120,13 +128,10 @@ export default function MenuPage() {
                     description={it.description}
                     price={it.price}
                     inCart={cart.lines?.some((l) => l.itemId === it._id)}
-                    wishlisted={wishlist.has(it._id)}
+                    wishlisted={wishlistIds.has(it._id)}
                     onToggleWishlist={() => {
-                      setWishlist((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(it._id)) next.delete(it._id);
-                        else next.add(it._id);
-                        return next;
+                      toggleWishlist(it._id).catch((err) => {
+                        console.error('Toggle wishlist failed:', err);
                       });
                     }}
                     onAddToCart={() => {

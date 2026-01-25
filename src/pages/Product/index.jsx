@@ -5,6 +5,7 @@ import { useCartStore } from '@/store/cart.store.js';
 import { money } from '@/utils/currency.js';
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 import Loader from '@/components/Loader.jsx';
+import FeedbackSection from '@/components/feedback/FeedbackSection.jsx';
 import imageNotFound from '@/assets/images/image-not-found.png';
 
 export default function ProductDetailPage() {
@@ -340,6 +341,9 @@ export default function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Feedback Section */}
+        <FeedbackSection productId={product._id} />
       </div>
     </div>
   );
