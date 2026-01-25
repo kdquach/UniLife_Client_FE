@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logomd from "@/assets/images/logo-md.png";
 import logolg from "@/assets/images/logo-lg.png";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
@@ -7,6 +7,7 @@ import CampusSelectModal from "@/components/header/CampusSelectModal.jsx";
 import CampusTrigger from "@/components/header/CampusTrigger.jsx";
 import NotificationDropdown from "@/components/header/NotificationDropdown.jsx";
 import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
+import { useCampusStore } from "@/store/useCampusStore";
 
 const notifications = [
   { id: "1", title: "Đơn hàng đã xác nhận", time: "2 phút trước" },
@@ -74,10 +75,27 @@ function IconButton({ children, badge, label = "", onClick, ...props }) {
 }
 
 export default function AppHeader() {
-  const [q, setQ] = useState("");
-  const [campus, setCampus] = useState("hcm");
-  const [openCampus, setOpenCampus] = useState(false);
+  // 1. Đưa hook này lên đầu và bỏ 'selectedCanteen' để sửa lỗi unused variable
+  const { selectedCampus } = useCampusStore();
 
+  const [q, setQ] = useState("");
+
+  // 2. Khởi tạo state dựa trên selectedCampus ngay lập tức để tránh lỗi cascading render
+  const [openCampus, setOpenCampus] = useState(!selectedCampus);
+
+  // Vẫn giữ useEffect để bắt trường hợp selectedCampus bị null sau khi component đã mount
+  // SỬA LỖI: Dùng setTimeout để set state bất đồng bộ
+  useEffect(() => {
+    if (!selectedCampus) {
+      const timer = setTimeout(() => {
+        setOpenCampus(true);
+      }, 0); // Delay 0ms để đẩy xuống cuối Event Loop
+
+      // Cleanup function để tránh memory leak nếu component unmount
+      return () => clearTimeout(timer);
+    }
+  }, [selectedCampus]);
+  
   // Lấy trạng thái đăng nhập và thông tin user từ localStorage
   const userAuthenticated = isAuthenticated();
   const currentUser = getCurrentUser();
@@ -113,7 +131,7 @@ export default function AppHeader() {
         </div>
 
         <CampusTrigger
-          campus={CAMPUS_LABEL[campus]}
+          campus={selectedCampus ? CAMPUSES.find(c => c.key === selectedCampus)?.name : 'Chọn campus'}
           onClick={() => setOpenCampus(true)}
         />
 
@@ -127,18 +145,13 @@ export default function AppHeader() {
         </div>
       </div>
 
-      {openCampus ? (
+      {openCampus && (
         <CampusSelectModal
           open={openCampus}
           onClose={() => setOpenCampus(false)}
           campuses={CAMPUSES}
-          value={campus}
-          onConfirm={(key) => {
-            setCampus(key);
-            setOpenCampus(false);
-          }}
         />
-      ) : null}
+      )}
     </header>
   );
 }
