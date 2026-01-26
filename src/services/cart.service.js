@@ -1,14 +1,14 @@
 import { api } from '@/services/axios.config';
 
 /** View Cart */
-export async function getCart() {
-    const res = await api.get('/cart');
+export async function getCart(canteenId) {
+    const res = await api.get('/cart', { params: { canteenId } });
     return res.data; // { status, data: { cart } }
 }
 
 /** Cart totals */
-export async function getCartTotal() {
-    const res = await api.get('/cart/total');
+export async function getCartTotal(canteenId) {
+    const res = await api.get('/cart/total', { params: { canteenId } });
     return res.data; // { status, data: { itemCount, totalPrice } }
 }
 
@@ -19,18 +19,23 @@ export async function addToCart(productId, quantity = 1) {
 }
 
 /** Update Quantity */
-export async function updateCartItemQuantity(productId, quantity) {
-    const res = await api.patch(`/cart/items/${productId}`, { quantity });
+export async function updateCartItemQuantity(productId, quantity, canteenId) {
+    // axios.patch(url, data, config)
+    const res = await api.patch(
+        `/cart/items/${productId}`,
+        { quantity },
+        { params: { canteenId } }
+    );
     return res.data; // { status, data: { cart } }
 }
 
 /** Delete Item */
-export async function deleteCartItem(productId) {
-    const res = await api.delete(`/cart/items/${productId}`);
+export async function deleteCartItem(productId, canteenId) {
+    const res = await api.delete(`/cart/items/${productId}`, { params: { canteenId } })
     return res.data; // { status, data: { cart } }
 }
 
-export async function clearCart() {
-    const res = await api.delete("/cart");
+export async function clearCart(canteenId) {
+    const res = await api.delete("/cart", { params: { canteenId } })
     return res.data;
 }

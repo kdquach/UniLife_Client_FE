@@ -69,9 +69,8 @@ export default function MenuPage() {
   // Clear cart khi đổi canteen
   useEffect(() => {
     if (selectedCanteen?.id) {
-      cart.clearCart();
     }
-  }, [selectedCanteen?.id, clearCart]);
+  }, [selectedCanteen?.id]);
 
   useEffect(() => {
     const params = {
