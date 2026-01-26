@@ -35,11 +35,7 @@ function useHorizontalOverflow(ref) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    const check = () => {
-      setOverflow(el.scrollWidth > el.clientWidth);
-    };
-
+    const check = () => setOverflow(el.scrollWidth > el.clientWidth);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -57,11 +53,24 @@ export default function MenuPage() {
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
 
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategoryId, setActiveCategoryId] = useState(null); // null = All
   const [sortOption, setSortOption] = useState('');
-  const isDefaultFilter = activeCategory === 'All' && !sortOption;
+  const isDefaultFilter = !activeCategoryId && !sortOption;
   const [searchParams] = useSearchParams();
   const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
+
+  // Reset filter khi đổi canteen
+  useEffect(() => {
+    setActiveCategoryId(null);
+    setSortOption('');
+  }, [selectedCanteen?.id]);
+
+  // Clear cart khi đổi canteen
+  useEffect(() => {
+    if (selectedCanteen?.id) {
+      cart.clearCart();
+    }
+  }, [selectedCanteen?.id, cart]);
 
   useEffect(() => {
     const params = {
@@ -71,13 +80,13 @@ export default function MenuPage() {
 
     // Search
     const search = searchParams.get('search');
-    if (search && search.trim()) {
+    if (search?.trim()) {
       params.search = search.trim();
     }
 
-    // Category
-    if (activeCategory !== 'All') {
-      params.category = activeCategory;
+    // Category filter (dùng categoryId)
+    if (activeCategoryId) {
+      params.categoryId = activeCategoryId;
     }
 
     // Sort
@@ -92,30 +101,35 @@ export default function MenuPage() {
     }
 
     if (selectedCanteen?.id) {
-      fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
-      cart.clearCart(); // Clear cart if canteen changes
+      fetchByCanteen(selectedCanteen.id, params);   // ✅ Truyền đầy đủ params
     } else {
       fetchAll(params);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCanteen?.id, activeCategoryId, sortOption, searchParams, fetchByCanteen, fetchAll]);
 
-    cart.clear();
-    // eslint-disable-next-line
-  }, [selectedCanteen?.id, activeCategory, sortOption, searchParams]);
-
-  // Fetch wishlist on mount (requires authenticated user)
+  // Fetch wishlist
   useEffect(() => {
-    fetchWishlist().catch((err) => {
-      console.warn('Wishlist not loaded:', err?.message || err);
-    });
+    fetchWishlist().catch((err) => console.warn('Wishlist not loaded:', err?.message));
   }, [fetchWishlist]);
 
-  // Extract unique categories from products
-  const categories = useMemo(() => {
-    const cats = new Set(
-      products.map((p) => p.categoryId?.name).filter(Boolean)
-    );
-    return ['All', ...Array.from(cats).sort()];
+  // Build category list with id
+  const categoryOptions = useMemo(() => {
+    const map = new Map(); // id → name
+    products.forEach((p) => {
+      const cat = p.categoryId;
+      if (cat?._id && cat.name) {
+        map.set(cat._id.toString(), cat.name);
+      }
+    });
+
+    const options = Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [{ id: null, name: 'All' }, ...options];
   }, [products]);
+
   const items = products;
 
   return (
@@ -123,19 +137,15 @@ export default function MenuPage() {
       <section className="grid min-w-0 gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text">Menu</h1>
-          <p className="text-sm text-muted">
-            Choose from our delicious selection
-          </p>
+          <p className="text-sm text-muted">Choose from our delicious selection</p>
         </div>
 
-        {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
             <Loader />
           </div>
         )}
 
-        {/* Error State */}
         {error && !loading && (
           <div className="rounded-lg bg-red-50 p-4 text-red-700">
             <p className="font-medium">Failed to load menu</p>
@@ -149,45 +159,35 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* Content */}
         {!loading && (
           <>
-            {/* Bộ lọc và sort */}
-            {/* FILTER BAR */}
             <div className="flex w-full items-center justify-between gap-4 flex-wrap">
-              {/* LEFT: CATEGORY */}
+              {/* Category chips */}
               <div className="relative min-w-0 flex-1">
                 {isOverflow && (
                   <button
-                    onClick={() =>
-                      categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })
-                    }
+                    onClick={() => categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
                     className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
                   >
                     ‹
                   </button>
                 )}
 
-                <div
-                  ref={categoryRef}
-                  className="flex gap-2 overflow-x-auto scrollbar-hide"
-                >
-                  {categories.map((c) => (
+                <div ref={categoryRef} className="flex gap-2 overflow-x-auto scrollbar-hide">
+                  {categoryOptions.map((cat) => (
                     <Chip
-                      key={c}
-                      active={activeCategory === c}
-                      onClick={() => setActiveCategory(c)}
+                      key={cat.id ?? 'all'}
+                      active={activeCategoryId === cat.id}
+                      onClick={() => setActiveCategoryId(cat.id)}
                     >
-                      {c}
+                      {cat.name}
                     </Chip>
                   ))}
                 </div>
 
                 {isOverflow && (
                   <button
-                    onClick={() =>
-                      categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })
-                    }
+                    onClick={() => categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
                     className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
                   >
                     ›
@@ -195,19 +195,19 @@ export default function MenuPage() {
                 )}
               </div>
 
-              {/* RIGHT: RESET + SORT */}
+              {/* Reset + Sort */}
               <div className="flex items-center gap-3 shrink-0">
                 <ResetLink
                   disabled={isDefaultFilter}
                   onClick={() => {
-                    setActiveCategory('All');
+                    setActiveCategoryId(null);
                     setSortOption('');
                   }}
                 />
 
                 <Select
                   value={sortOption || ''}
-                  onChange={(v) => setSortOption(v)}
+                  onChange={setSortOption}
                   size="middle"
                   className="min-w-40"
                   options={[
@@ -238,11 +238,7 @@ export default function MenuPage() {
                     price={it.price}
                     inCart={cart.lines?.some((l) => l.itemId === it._id)}
                     wishlisted={wishlistIds.has(it._id)}
-                    onToggleWishlist={() => {
-                      toggleWishlist(it._id).catch((err) => {
-                        console.error('Toggle wishlist failed:', err);
-                      });
-                    }}
+                    onToggleWishlist={() => toggleWishlist(it._id)}
                     onAddToCart={() => {
                       cart.addItem(it._id, 1);
                       panel.openCart();
@@ -254,6 +250,6 @@ export default function MenuPage() {
           </>
         )}
       </section>
-    </div >
+    </div>
   );
 }
