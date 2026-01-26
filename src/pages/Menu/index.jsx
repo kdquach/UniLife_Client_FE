@@ -3,9 +3,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
+import { useCampusStore } from '@/store/useCampusStore';
 import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
-import MaterialIcon from '@/components/MaterialIcon.jsx';
 import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 
@@ -29,16 +29,22 @@ function Chip({ active, children, onClick }) {
 export default function MenuPage() {
   const cart = useCartStore();
   const panel = useRightPanel();
-  const { products, loading, error, fetchAll } = useProduct();
+  const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
+  const { selectedCanteen } = useCampusStore();
   const [activeCategory, setActiveCategory] = useState('All');
   const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
 
-  // Fetch products on component mount
+  // Fetch products when selectedCanteen changes
   useEffect(() => {
-    fetchAll({ limit: 100, status: 'available' }).catch((err) => {
-      console.error('Failed to fetch products:', err);
-    });
-  }, [fetchAll]);
+    if (selectedCanteen?.id) {
+      fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
+      cart.clear(); // Clear cart if canteen changes
+    } else {
+      fetchAll({ limit: 100, status: 'available' });
+    }
+    setActiveCategory('All');
+    // eslint-disable-next-line
+  }, [selectedCanteen?.id]);
 
   // Fetch wishlist on mount (requires authenticated user)
   useEffect(() => {
