@@ -38,7 +38,7 @@ export default function MenuPage() {
   useEffect(() => {
     if (selectedCanteen?.id) {
       fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
-      cart.clear(); // Clear cart if canteen changes
+      cart.clearCart(); // Clear cart if canteen changes
     } else {
       fetchAll({ limit: 100, status: 'available' });
     }
