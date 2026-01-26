@@ -1,5 +1,7 @@
 import clsx from 'clsx';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Select } from 'antd';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
@@ -8,6 +10,7 @@ import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
 import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
+import ResetLink from '../../components/menu/ResetLink';
 
 function Chip({ active, children, onClick }) {
   return (
@@ -15,10 +18,10 @@ function Chip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={clsx(
-        'rounded-full px-4 py-1.5 text-sm font-medium shadow-card transition duration-200',
+        'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200',
         active
           ? 'bg-primary text-inverse shadow-lift'
-          : 'bg-white/80 text-muted hover:bg-white hover:shadow-lift'
+          : 'bg-white/80 text-muted shadow-card hover:bg-white hover:shadow-lift'
       )}
     >
       {children}
@@ -26,25 +29,78 @@ function Chip({ active, children, onClick }) {
   );
 }
 
+function useHorizontalOverflow(ref) {
+  const [overflow, setOverflow] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const check = () => {
+      setOverflow(el.scrollWidth > el.clientWidth);
+    };
+
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  return overflow;
+}
+
 export default function MenuPage() {
   const cart = useCartStore();
   const panel = useRightPanel();
+  const categoryRef = useRef(null);
+  const isOverflow = useHorizontalOverflow(categoryRef);
+
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
+
   const [activeCategory, setActiveCategory] = useState('All');
+  const [sortOption, setSortOption] = useState('');
+  const isDefaultFilter = activeCategory === 'All' && !sortOption;
+  const [searchParams] = useSearchParams();
   const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
 
-  // Fetch products when selectedCanteen changes
   useEffect(() => {
+    const params = {
+      limit: 100,
+      status: 'available',
+    };
+
+    // Search
+    const search = searchParams.get('search');
+    if (search && search.trim()) {
+      params.search = search.trim();
+    }
+
+    // Category
+    if (activeCategory !== 'All') {
+      params.category = activeCategory;
+    }
+
+    // Sort
+    if (sortOption) {
+      const map = {
+        'name-asc': 'name',
+        'name-desc': '-name',
+        'price-asc': 'price',
+        'price-desc': '-price',
+      };
+      params.sort = map[sortOption];
+    }
+
     if (selectedCanteen?.id) {
       fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
       cart.clearCart(); // Clear cart if canteen changes
     } else {
-      fetchAll({ limit: 100, status: 'available' });
+      fetchAll(params);
     }
-    setActiveCategory('All');
+
+    cart.clear();
     // eslint-disable-next-line
-  }, [selectedCanteen?.id]);
+  }, [selectedCanteen?.id, activeCategory, sortOption, searchParams]);
 
   // Fetch wishlist on mount (requires authenticated user)
   useEffect(() => {
@@ -60,11 +116,7 @@ export default function MenuPage() {
     );
     return ['All', ...Array.from(cats).sort()];
   }, [products]);
-
-  const items = useMemo(() => {
-    if (activeCategory === 'All') return products;
-    return products.filter((x) => x.categoryId?.name === activeCategory);
-  }, [activeCategory, products]);
+  const items = products;
 
   return (
     <div className="grid gap-6">
@@ -100,16 +152,73 @@ export default function MenuPage() {
         {/* Content */}
         {!loading && (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              {categories.map((c) => (
-                <Chip
-                  key={c}
-                  active={activeCategory === c}
-                  onClick={() => setActiveCategory(c)}
+            {/* Bộ lọc và sort */}
+            {/* FILTER BAR */}
+            <div className="flex w-full items-center justify-between gap-4 flex-wrap">
+              {/* LEFT: CATEGORY */}
+              <div className="relative min-w-0 flex-1">
+                {isOverflow && (
+                  <button
+                    onClick={() =>
+                      categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })
+                    }
+                    className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                  >
+                    ‹
+                  </button>
+                )}
+
+                <div
+                  ref={categoryRef}
+                  className="flex gap-2 overflow-x-auto scrollbar-hide"
                 >
-                  {c}
-                </Chip>
-              ))}
+                  {categories.map((c) => (
+                    <Chip
+                      key={c}
+                      active={activeCategory === c}
+                      onClick={() => setActiveCategory(c)}
+                    >
+                      {c}
+                    </Chip>
+                  ))}
+                </div>
+
+                {isOverflow && (
+                  <button
+                    onClick={() =>
+                      categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })
+                    }
+                    className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                  >
+                    ›
+                  </button>
+                )}
+              </div>
+
+              {/* RIGHT: RESET + SORT */}
+              <div className="flex items-center gap-3 shrink-0">
+                <ResetLink
+                  disabled={isDefaultFilter}
+                  onClick={() => {
+                    setActiveCategory('All');
+                    setSortOption('');
+                  }}
+                />
+
+                <Select
+                  value={sortOption || ''}
+                  onChange={(v) => setSortOption(v)}
+                  size="middle"
+                  className="min-w-40"
+                  options={[
+                    { value: '', label: 'Mặc định' },
+                    { value: 'name-asc', label: 'Tên A → Z' },
+                    { value: 'name-desc', label: 'Tên Z → A' },
+                    { value: 'price-desc', label: 'Giá cao → thấp' },
+                    { value: 'price-asc', label: 'Giá thấp → cao' },
+                  ]}
+                />
+              </div>
             </div>
 
             {items.length === 0 ? (
@@ -145,6 +254,6 @@ export default function MenuPage() {
           </>
         )}
       </section>
-    </div>
+    </div >
   );
 }

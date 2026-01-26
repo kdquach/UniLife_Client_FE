@@ -76,7 +76,6 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
       footer={null}
       centered
       width={720}
-      destroyOnClose
     >
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* LEFT */}
