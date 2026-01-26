@@ -3,6 +3,7 @@ import { OrderContext } from "./order.context";
 import { createOrder as apiCreateOrder } from "@/services/order.service";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store.js";
+import { paymentMomo } from "../services/payment.service";
 
 export function OrderProvider({ children }) {
   const cart = useCartStore();
@@ -36,13 +37,10 @@ export function OrderProvider({ children }) {
       };
 
       const res = await apiCreateOrder(payload);
+
       const order = res.data.order;
 
       setLastOrder(order);
-
-      // 🔥 Quan trọng: clear cart SAU khi order thành công
-      await cart.clearCart();
-
       toast.success("Đặt hàng thành công");
       return order;
     } catch (e) {

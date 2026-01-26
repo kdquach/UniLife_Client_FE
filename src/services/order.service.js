@@ -23,6 +23,12 @@ export async function getMyOrders(options = {}) {
   return response.data;
 }
 
+/** Get order by ID */
+export async function getOrderById(id) {
+    const res = await api.get(`/orders/${id}`);
+    return res.data; // { status, data: { order } }
+}
+
 /**
  * Get order detail by ID
  * @param {string} id - Order ID

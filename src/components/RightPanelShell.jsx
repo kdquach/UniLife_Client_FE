@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import RightCartPanel from "@/components/RightCartPanel.jsx";
 import RightMenuDetailPanel from "@/components/RightMenuDetailPanel.jsx";
@@ -8,6 +8,10 @@ import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
 import { money } from "@/utils/currency.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
+import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
+import { useOrderStore } from "@/store/order.store.js";
+import { getOrderById } from "@/services/order.service.js";
+import { useSearchParams } from "react-router-dom";
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => {
@@ -29,6 +33,41 @@ function useMediaQuery(query) {
 export default function RightPanelShell({ mode = "shopping" }) {
   const cart = useCartStore();
   const panel = useRightPanel();
+  const order = useOrderStore();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paymentResult = useMemo(() => ({
+    orderId: searchParams.get("orderId"),
+    status: searchParams.get("status"),
+  }), [searchParams]);
+
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successOrder, setSuccessOrder] = useState(null);
+
+  // Open success modal after returning from MoMo via URL params
+  useEffect(() => {
+    const id = paymentResult.orderId;
+    if (!id) return;
+    (async () => {
+      try {
+        const resp = await getOrderById(id);
+        const fetched = resp?.data?.order || null;
+        setSuccessOrder(fetched || order.lastOrder || { _id: id, payment: { method: "momo" } });
+        const status = fetched?.payment?.status || paymentResult.status;
+        if (status === "completed") {
+          cart.clearCart();
+        }
+      } catch (err) {
+        // fallback minimal order if fetch fails
+        setSuccessOrder((prev) => prev || order.lastOrder || { _id: id, payment: { method: "momo" } });
+        console.error("Failed to fetch order by id", err);
+      } finally {
+        setSuccessOpen(true);
+        // clear params to avoid reopening on refresh
+        setSearchParams({});
+      }
+    })();
+  }, [paymentResult.orderId]);
 
   const { expanded, view, collapse, openCart } = panel;
 
@@ -213,6 +252,18 @@ export default function RightPanelShell({ mode = "shopping" }) {
           />
         </button>
       ) : null}
+
+      <OrderSuccessModal
+        open={successOpen}
+        order={successOrder || order.lastOrder}
+        onClose={() => setSuccessOpen(false)}
+        onViewOrder={() => {
+          const o = successOrder || order.lastOrder;
+          if (!o) return;
+          setSuccessOpen(false);
+          panel.openOrderDetail(o);
+        }}
+      />
     </>
   );
 }
