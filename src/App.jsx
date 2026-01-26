@@ -45,19 +45,15 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           <OrderProvider>
-      <CampusProvider>
-        <AuthProvider>
-          <CartProvider>
-            <RightPanelProvider>
-              <RouterProvider router={router} />
-              <Toaster position="top-right" richColors expand={false} />
-            </RightPanelProvider>
+            <CampusProvider>
+              <RightPanelProvider>
+                <RouterProvider router={router} />
+                <Toaster position="top-right" richColors expand={false} />
+              </RightPanelProvider>
+            </CampusProvider>
           </OrderProvider>
         </CartProvider>
       </AuthProvider>
-          </CartProvider>
-        </AuthProvider>
-      </CampusProvider>
     </ConfigProvider>
   );
 }
