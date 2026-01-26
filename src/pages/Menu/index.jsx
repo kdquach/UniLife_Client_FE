@@ -49,6 +49,7 @@ export default function MenuPage() {
   const panel = useRightPanel();
   const categoryRef = useRef(null);
   const isOverflow = useHorizontalOverflow(categoryRef);
+  const { clearCart } = useCartStore();
 
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
@@ -70,7 +71,7 @@ export default function MenuPage() {
     if (selectedCanteen?.id) {
       cart.clearCart();
     }
-  }, [selectedCanteen?.id, cart]);
+  }, [selectedCanteen?.id, clearCart]);
 
   useEffect(() => {
     const params = {
