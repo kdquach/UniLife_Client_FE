@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
 import { money } from "@/utils/currency.js";
-import { addOrder } from "@/utils/ordersStorage.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
-import { ORDER_STATUS } from "@/constants/order.constant.js";
 import { useOrderStore } from "@/store/order.store.js";
+const { paymentMomo } = await import('@/services/payment.service.js');
+import { useSearchParams } from "react-router-dom";
+
 
 
 function normalizeLines(order) {
@@ -30,17 +31,68 @@ function normalizeLines(order) {
 export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
-  const order = useOrderStore()
+  const order = useOrderStore();
 
-  const draft = panel.order;
-  const lines = useMemo(() => normalizeLines(cart.lines), [cart.lines]);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const total = cart.total
+  /* ---------- đọc kết quả từ MoMo ---------- */
+  const paymentResult = useMemo(() => {
+    return {
+      orderId: searchParams.get("orderId"),
+      status: searchParams.get("status"), // completed | failed
+    };
+  }, [searchParams]);
 
+  /* ---------- state ---------- */
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [successOpen, setSuccessOpen] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
 
+  /* ---------- data ---------- */
+  const draft = panel.order;
+  const lines = useMemo(() => normalizeLines(cart.lines), [cart.lines]);
+  const total = cart.total;
+
+  useEffect(() => {
+    const id = paymentResult.orderId;
+    if (!id) return;
+    if (paymentResult.status === 'completed') {
+      cart.clearCart();
+    }
+
+
+
+    // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
+    setSuccessOrder((prev) => prev || order.lastOrder || { _id: id, payment: { method: "momo" } });
+    setSuccessOpen(true);
+
+    // tránh mở lại modal khi refresh
+    setSearchParams({});
+  }, [paymentResult.orderId, paymentResult.status]);
+
+  /* ---------- init MoMo ---------- */
+  const handlePaymentMomo = async () => {
+    try {
+      // 1. Tạo order pending
+      const created = await order.createOrder({
+        paymentMethod: "momo",
+      });
+      if (!created) return;
+
+      // 2. Tạo giao dịch MoMo
+      const resp = await paymentMomo({
+        orderId: created._id,
+        amount: created.totalAmount,
+      });
+
+      const payUrl = resp?.result?.payUrl || resp?.payUrl;
+      if (payUrl) {
+        window.location.href = payUrl;
+      }
+    } catch (err) {
+      console.error("MoMo payment init failed", err);
+    }
+  };
   if (!draft) {
     return (
       <div className={clsx("flex h-full flex-col", className)}>
@@ -72,6 +124,18 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             </button>
           </div>
         </div>
+
+        {/* Always render success modal, even when no draft */}
+        <OrderSuccessModal
+          open={successOpen}
+          order={successOrder || order.lastOrder}
+          onClose={() => setSuccessOpen(false)}
+          onViewOrder={() => {
+            if (!successOrder) return;
+            setSuccessOpen(false);
+            panel.openOrderDetail(successOrder);
+          }}
+        />
       </div>
     );
   }
@@ -168,12 +232,23 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             "hover:shadow-lift active:scale-[0.99]"
           )}
           onClick={async () => {
-            const created = await order.createOrder({ paymentMethod });
-            if (created) {
-              setSuccessOpen(true);
-              setSuccessOrder(created);
+            if (paymentMethod === "momo") {
+              await handlePaymentMomo();
+              // Wait for MoMo callback to confirm status; don't clear cart here
+              return
+            } else {
+              const created = await order.createOrder({
+                paymentMethod,
+              });
+              if (created) {
+                cart.clearCart();
+                setSuccessOrder(created);
+                setSuccessOpen(true);
+              }
             }
-          }}
+
+          }
+          }
         >
           Tôi đã thanh toán
         </button>
@@ -181,7 +256,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
 
       <OrderSuccessModal
         open={successOpen}
-        order={order.lastOrder}
+        order={successOrder || order.lastOrder}
         onClose={() => setSuccessOpen(false)}
         onViewOrder={() => {
           if (!successOrder) return;

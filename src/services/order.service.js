@@ -6,4 +6,10 @@ export async function createOrder(payload) {
     return res.data; // { status, data: { order } }
 }
 
+/** Get order by ID */
+export async function getOrderById(id) {
+    const res = await api.get(`/orders/${id}`);
+    return res.data; // { status, data: { order } }
+}
+
 

@@ -15,7 +15,7 @@ export default function OrderSuccessModal({ open, order, onClose, onViewOrder })
   const code = order?.orderNumber || order?.code || (order?._id ? String(order._id).slice(-6) : "—");
   const paymentKey = order?.payment?.method || order?.paymentMethod || null;
   const paymentLabel = paymentKey
-    ? ({ cash: "COD", momo: "Momo", sepay: "Sepay", bank_transfer: "Sepay" }[paymentKey] || paymentKey)
+    ? ({ cash: "Cash", momo: "Momo", sepay: "Sepay", bank_transfer: "Sepay" }[paymentKey] || paymentKey)
     : "—";
   const total = typeof order?.totalAmount === "number"
     ? order.totalAmount

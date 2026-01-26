@@ -36,7 +36,6 @@ export default function RightOrderDetailPanel({ className, allowCollapse = true 
   const panel = useRightPanel();
 
   const order = panel.order || null;
-  console.log("🚀 ~ RightOrderDetailPanel ~ order:", order)
 
   const lines = useMemo(() => normalizeOrderItems(order), [order]);
 
