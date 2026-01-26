@@ -73,7 +73,7 @@ export default function ProductCard({
     );
 
     // Step 2–3: cart flies out, check flies in
-    timersRef.current.push(window.setTimeout(() => {}, BUTTON_MS));
+    timersRef.current.push(window.setTimeout(() => { }, BUTTON_MS));
 
     // Step 4: settle
     timersRef.current.push(
@@ -152,7 +152,7 @@ export default function ProductCard({
           }}
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           className={clsx(
-            'relative shrink-0',
+            'group relative shrink-0 cursor-pointer',
             'grid h-11 w-11 place-items-center rounded-xl',
             'transform-gpu',
             'transition-all duration-200 ease-out',
@@ -160,8 +160,8 @@ export default function ProductCard({
             wishlisted
               ? 'bg-primary/10 text-primary'
               : 'bg-surfaceMuted text-muted',
-            'hover:bg-surface hover:shadow-lift',
-            'active:scale-95'
+            'hover:bg-surface hover:shadow-lift hover:ring-2 hover:ring-primary/20',
+            'hover:scale-[1.05] active:scale-95'
           )}
         >
           {/* Pulse ring */}
@@ -180,8 +180,8 @@ export default function ProductCard({
           <span
             className={clsx(
               'relative z-10',
-              'transition-transform duration-200 ease-out',
-              wishlisted ? 'scale-110' : 'scale-100'
+              'transition-transform duration-200 ease-out transition-colors',
+              wishlisted ? 'scale-110 group-hover:text-primary' : 'scale-100 group-hover:text-primary'
             )}
           >
             <MaterialIcon
@@ -202,12 +202,13 @@ export default function ProductCard({
           onMouseEnter={onBtnEnter}
           onMouseLeave={onBtnLeave}
           className={clsx(
-            'flex h-11 flex-1 items-center justify-center gap-2',
+            'group flex h-11 flex-1 items-center justify-center gap-2 cursor-pointer',
             'rounded-xl px-4 text-sm font-semibold shadow-card',
             'transition-all duration-200 ease-out',
             isAdded
               ? 'bg-primary text-inverse'
               : 'bg-surfaceMuted text-text hover:bg-primary hover:text-inverse',
+            'hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20',
             press && 'scale-95'
           )}
         >

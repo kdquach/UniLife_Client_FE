@@ -5,6 +5,7 @@ import { router } from "./routes/index.jsx";
 import { AuthProvider } from "./store/auth.store.js";
 import { CartProvider } from "./store/cart.store.js";
 import { RightPanelProvider } from "./store/rightPanel.store.js";
+import { OrderProvider } from "./store/order.store.js";
 import { CampusProvider } from "./store/CampusProvider.jsx";
 
 export default function App() {
@@ -41,6 +42,9 @@ export default function App() {
         },
       }}
     >
+      <AuthProvider>
+        <CartProvider>
+          <OrderProvider>
       <CampusProvider>
         <AuthProvider>
           <CartProvider>
@@ -48,6 +52,9 @@ export default function App() {
               <RouterProvider router={router} />
               <Toaster position="top-right" richColors expand={false} />
             </RightPanelProvider>
+          </OrderProvider>
+        </CartProvider>
+      </AuthProvider>
           </CartProvider>
         </AuthProvider>
       </CampusProvider>

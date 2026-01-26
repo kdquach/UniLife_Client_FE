@@ -9,21 +9,33 @@ import { ORDER_STATUS, ORDER_STATUS_BADGE, ORDER_STATUS_LABEL, ORDER_TIMELINE_ST
 
 function normalizeLines(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
-  const summary = order?.summary || {};
 
-  const inferredSubtotal = items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
-  const subtotal = typeof summary.subtotal === "number" ? summary.subtotal : inferredSubtotal;
-  const tax = typeof summary.tax === "number" ? summary.tax : subtotal * 0.08;
-  const total = typeof summary.total === "number" ? summary.total : subtotal + tax;
+  const subtotalFromModel = typeof order?.subTotal === "number" ? order.subTotal : null;
+  const totalFromModel = typeof order?.totalAmount === "number" ? order.totalAmount : null;
+  const discount = typeof order?.discount === "number" ? order.discount : 0;
+
+  const inferredSubtotal = items.reduce((sum, it) => {
+    const unit = Number(
+      it.price ?? it?.productId?.price ?? 0
+    );
+    const qty = Number(it.quantity ?? it.qty ?? 1);
+    return sum + unit * qty;
+  }, 0);
+
+  const subtotal = subtotalFromModel ?? order?.summary?.subtotal ?? inferredSubtotal;
+  const total = totalFromModel ?? order?.summary?.total ?? subtotal; // if model doesn't include tax
+  const tax = typeof order?.summary?.tax === "number" ? order.summary.tax : Math.max(total - (subtotal - discount), 0);
 
   const lines = items.map((it, idx) => {
-    const unit = Number(it.price) || 0;
-    const qty = Number(it.qty) || 1;
+    const unit = Number(it.price ?? it?.productId?.price ?? 0);
+    const qty = Number(it.quantity ?? it.qty ?? 1);
+    const name = it.productName ?? it.name ?? it?.productId?.name ?? "";
+    const image = it.image ?? it?.productId?.image ?? "";
     return {
-      lineId: `od-${order?.id || "x"}-${idx}`,
-      itemId: it.itemId ?? it.id,
+      lineId: `od-${order?._id || order?.id || "x"}-${idx}`,
+      itemId: it.itemId ?? it.id ?? it?.productId?._id,
       qty,
-      item: { name: it.name, image: it.image },
+      item: { name, image },
       unit,
       lineTotal: unit * qty,
     };
@@ -142,7 +154,7 @@ export default function OrderDetailPanel({ className, allowCollapse = true }) {
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-text">Order #{order.code}</h1>
+            <h1 className="text-lg font-semibold text-text">Order #{order.orderNumber || order.code || String(order?._id || "").slice(-6)}</h1>
             <StatusBadge status={status} />
           </div>
           <p className="text-xs text-muted">Total: {money(total)}</p>

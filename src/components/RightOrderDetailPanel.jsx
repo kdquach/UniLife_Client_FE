@@ -8,7 +8,7 @@ import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSummaryCard from "@/components/cart/OrderSummaryCard.jsx";
 
 function normalizeOrderItems(order) {
-  const raw = order?.items || order?.lines || order?.cartLines || [];
+  const raw = order;
   if (!Array.isArray(raw)) return [];
 
   return raw
@@ -36,6 +36,7 @@ export default function RightOrderDetailPanel({ className, allowCollapse = true 
   const panel = useRightPanel();
 
   const order = panel.order || null;
+  console.log("🚀 ~ RightOrderDetailPanel ~ order:", order)
 
   const lines = useMemo(() => normalizeOrderItems(order), [order]);
 
