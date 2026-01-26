@@ -27,6 +27,9 @@ export default function CartItemCard({
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-text">{line.item?.name}</p>
             <p className="mt-0.5 text-xs text-muted">{money(line.unit)} / item</p>
+            {readonly ? (
+              <p className="mt-0.5 text-xs font-semibold text-muted">x{line.qty}</p>
+            ) : null}
           </div>
           <p className="shrink-0 text-sm font-bold text-primary">{money(line.lineTotal)}</p>
         </div>

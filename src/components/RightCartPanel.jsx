@@ -13,7 +13,6 @@ import OrderSummaryCard from "@/components/cart/OrderSummaryCard.jsx";
 export default function RightCartPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
-
   const hasItems = cart.count > 0;
 
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -72,16 +71,32 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
               {/* <div chứa các item card - bg màu app-bg border-radius> */}
               <div className="rounded-3xl bg-surfaceMuted p-3">
                 <div className="grid gap-2">
-                  {cart.cartLines.map((l) => (
-                    <CartItemCard
-                      key={l.lineId}
-                      line={l}
-                      readonly={false}
-                      onDec={() => cart.decLine(l.lineId)}
-                      onInc={() => cart.incLine(l.lineId)}
-                      onRemove={() => cart.removeLine(l.lineId)}
-                    />
-                  ))}
+                  {cart.lines.map((l) => {
+                    const id = l?.productId?._id ?? l?.productId;
+                    const unit = l?.productId?.price ?? 0;
+                    const qty = l?.quantity ?? 1;
+                    const cardLine = {
+                      lineId: id,
+                      itemId: id,
+                      qty,
+                      unit,
+                      lineTotal: unit * qty,
+                      item: {
+                        name: l?.productId?.name,
+                        image: l?.productId?.image,
+                      },
+                    };
+                    return (
+                      <CartItemCard
+                        key={id}
+                        line={cardLine}
+                        readonly={false}
+                        onDec={() => cart.decLine(id)}
+                        onInc={() => cart.incLine(id)}
+                        onRemove={() => cart.removeLine(id)}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -179,11 +194,11 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
           <button
             type="button"
             className={clsx(
-              "flex h-12 w-full items-center justify-center",
+              "flex h-12 w-full items-center justify-center cursor-pointer",
               "rounded-2xl text-sm font-semibold text-inverse",
               "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
               "shadow-card transition duration-200",
-              "hover:shadow-lift active:scale-[0.99]"
+              "hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20 active:scale-[0.99]"
             )}
             onClick={() => {
               const draft = {
@@ -191,12 +206,12 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                 code: "DRAFT",
                 status: "pending",
                 createdAt: new Date().toISOString(),
-                items: (cart.cartLines || []).map((l) => ({
-                  itemId: l.itemId,
-                  qty: l.qty,
-                  name: l.item?.name,
-                  price: l.unit,
-                  image: l.item?.image || "",
+                items: (cart.lines || []).map((l) => ({
+                  itemId: l?.productId?._id ?? l?.productId,
+                  qty: l?.quantity ?? 1,
+                  name: l?.productId?.name ?? "",
+                  price: l?.productId?.price ?? 0,
+                  image: l?.productId?.image ?? "",
                 })),
                 summary: {
                   subtotal: cart.subtotal,
@@ -212,6 +227,6 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
           </button>
         </div>
       ) : null}
-    </div >
+    </div>
   );
 }

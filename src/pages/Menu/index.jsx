@@ -92,7 +92,8 @@ export default function MenuPage() {
     }
 
     if (selectedCanteen?.id) {
-      fetchByCanteen(selectedCanteen.id, params);
+      fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
+      cart.clearCart(); // Clear cart if canteen changes
     } else {
       fetchAll(params);
     }

@@ -12,6 +12,15 @@ function fmtTime(iso) {
 }
 
 export default function OrderSuccessModal({ open, order, onClose, onViewOrder }) {
+  const code = order?.orderNumber || order?.code || (order?._id ? String(order._id).slice(-6) : "—");
+  const paymentKey = order?.payment?.method || order?.paymentMethod || null;
+  const paymentLabel = paymentKey
+    ? ({ cash: "COD", momo: "Momo", sepay: "Sepay", bank_transfer: "Sepay" }[paymentKey] || paymentKey)
+    : "—";
+  const total = typeof order?.totalAmount === "number"
+    ? order.totalAmount
+    : (typeof order?.summary?.total === "number" ? order.summary.total : (typeof order?.total === "number" ? order.total : 0));
+  const qrCode = order?.pickupQRCode?.code || order?._id || "order";
   return (
     <Modal open={open} onCancel={onClose} footer={null} centered width={560} styles={{ body: { padding: 24 } }}>
       <div className="grid gap-5">
@@ -29,7 +38,7 @@ export default function OrderSuccessModal({ open, order, onClose, onViewOrder })
           <div className="grid gap-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted">Mã đơn</span>
-              <span className="font-semibold text-text">#{order?.code || "—"}</span>
+              <span className="font-semibold text-text">#{code}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted">Thời gian</span>
@@ -37,18 +46,18 @@ export default function OrderSuccessModal({ open, order, onClose, onViewOrder })
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted">Phương thức</span>
-              <span className="font-semibold text-text">{order?.paymentMethod || "—"}</span>
+              <span className="font-semibold text-text">{paymentLabel}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted">Tổng tiền</span>
-              <span className="font-extrabold text-primary">{money(order?.summary?.total ?? order?.total ?? 0)}</span>
+              <span className="font-extrabold text-primary">{money(total)}</span>
             </div>
           </div>
 
           <div className="mt-4 rounded-2xl bg-white p-4">
             <div className="grid place-items-center gap-2">
               <div className="grid h-36 w-36 place-items-center rounded-2xl border border-border bg-surface">
-                <span className="text-xs font-semibold text-muted">QR: {order?.id || "order"}</span>
+                <span className="text-xs font-semibold text-muted">QR: {qrCode}</span>
               </div>
               <p className="text-xs text-muted">(DEV) QR placeholder — TODO(api): generate QR from orderId</p>
             </div>
