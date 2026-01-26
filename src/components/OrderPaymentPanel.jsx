@@ -9,6 +9,7 @@ import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { useOrderStore } from "@/store/order.store.js";
 const { paymentMomo } = await import('@/services/payment.service.js');
 import { useSearchParams } from "react-router-dom";
+import { getOrderById } from "@/services/order.service.js";
 
 
 
@@ -240,10 +241,20 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
               const created = await order.createOrder({
                 paymentMethod,
               });
+              console.log("🚀 ~ OrderPaymentPanel ~ created:", created)
               if (created) {
-                cart.clearCart();
-                setSuccessOrder(created);
+                // Fetch full order to populate canteen info for detail view
+                let full = created;
+                try {
+                  const resp = await getOrderById(created._id);
+                  full = resp?.data?.order || created;
+                } catch (e) {
+                  // fallback if fetch fails
+                }
+                setSuccessOrder(full);
                 setSuccessOpen(true);
+                cart.clearCart();
+
               }
             }
 

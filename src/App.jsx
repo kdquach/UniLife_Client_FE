@@ -42,18 +42,18 @@ export default function App() {
         },
       }}
     >
-      <AuthProvider>
-        <CartProvider>
-          <OrderProvider>
-            <CampusProvider>
+      <CampusProvider>
+        <AuthProvider>
+          <CartProvider>
+            <OrderProvider>
               <RightPanelProvider>
                 <RouterProvider router={router} />
                 <Toaster position="top-right" richColors expand={false} />
               </RightPanelProvider>
-            </CampusProvider>
-          </OrderProvider>
-        </CartProvider>
-      </AuthProvider>
+            </OrderProvider>
+          </CartProvider>
+        </AuthProvider>
+      </CampusProvider>
     </ConfigProvider>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CartContext } from "./cart.context";
 import { MENU_ITEMS } from "@/pages/Menu/menu.data";
+import { useCampusStore } from "@/store/useCampusStore";
 // Import API cart
 import {
   getCart,
@@ -12,6 +13,7 @@ import {
 } from "@/services/cart.service";
 
 export function CartProvider({ children }) {
+  const { selectedCanteen } = useCampusStore();
 
   const [lines, setLines] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,14 +31,15 @@ export function CartProvider({ children }) {
     async function loadCart() {
       setLoading(true)
       try {
-        const res = await getCart()
+        const res = await getCart(selectedCanteen?.id || canteenId)
         if (mounted) {
-          setCanteenId(res.data.cart.canteenId._id || '')
-          setLines(res.data.cart.items || [])
+          setCanteenId(res.data.cart?.canteenId?._id || selectedCanteen?.id || '')
+          setLines(res.data.cart?.items || [])
         }
 
       } catch (error) {
         setError(error)
+        setLines([])
       } finally {
         setLoading(false)
       }
@@ -45,7 +48,7 @@ export function CartProvider({ children }) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [selectedCanteen?.id])
 
 
   /**
@@ -54,13 +57,13 @@ export function CartProvider({ children }) {
 
   const reloadCart = useCallback(async () => {
     try {
-      const res = await getCart();
-      setCanteenId(res.data.cart.canteenId._id || '')
-      setLines(res.data.cart.items || []);
+      const res = await getCart(selectedCanteen?.id || canteenId);
+      setCanteenId(res.data.cart?.canteenId?._id || selectedCanteen?.id || '')
+      setLines(res.data.cart?.items || []);
     } catch (err) {
       console.error("Reload cart failed", err);
     }
-  }, []);
+  }, [selectedCanteen?.id, canteenId]);
 
   /**
  * ===============================
@@ -151,11 +154,11 @@ export function CartProvider({ children }) {
 
     try {
       const current = lines.find((l) => l.productId._id === productId);
-      await updateCartItemQuantity(productId, current.quantity + 1);
+      await updateCartItemQuantity(productId, current.quantity + 1, canteenId);
     } catch {
       reloadCart();
     }
-  }, [lines, reloadCart]);
+  }, [lines, reloadCart, canteenId]);
 
   /**
    * ===============================
@@ -175,11 +178,11 @@ export function CartProvider({ children }) {
 
     try {
       const current = lines.find((l) => l.productId._id === productId);
-      await updateCartItemQuantity(productId, current.quantity - 1);
+      await updateCartItemQuantity(productId, current.quantity - 1, canteenId);
     } catch {
       reloadCart();
     }
-  }, [lines, reloadCart]);
+  }, [lines, reloadCart, canteenId]);
 
   /**
    * ===============================
@@ -194,21 +197,21 @@ export function CartProvider({ children }) {
     );
 
     try {
-      await deleteCartItem(productId);
+      await deleteCartItem(productId, canteenId);
     } catch {
       setLines(backup);
     }
-  }, [lines]);
+  }, [lines, canteenId]);
 
   const clearCart = useCallback(async () => {
     try {
-      await apiClearCart();   // clear backend
+      await apiClearCart(canteenId);   // clear backend
       setLines([]);           // clear UI
       setCanteenId("");
     } catch (e) {
       console.error("Clear cart failed", e);
     }
-  }, []);
+  }, [canteenId]);
 
   /**
     * ===============================
