@@ -8,44 +8,19 @@ import MaterialIcon from "@/components/MaterialIcon.jsx";
 import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { ORDER_STATUS } from "@/constants/order.constant.js";
+import { useOrderStore } from "@/store/order.store.js";
 
-function buildFinalOrderFromDraft(draft, paymentMethod) {
-  const now = new Date();
-  const ts = now.getTime();
-  const code = `ORD-${String(ts).slice(-6)}`;
-
-  const items = Array.isArray(draft?.items) ? draft.items : [];
-  const subtotal = draft?.summary?.subtotal ?? items.reduce((sum, it) => sum + (it.price || 0) * (it.qty || 1), 0);
-  const tax = draft?.summary?.tax ?? subtotal * 0.08;
-  const total = draft?.summary?.total ?? subtotal + tax;
-
-  return {
-    id: `order-${ts}`,
-    code,
-    status: ORDER_STATUS.confirmed,
-    createdAt: now.toISOString(),
-    paymentMethod,
-    items: items.map((it) => ({
-      itemId: it.itemId ?? it.id,
-      qty: it.qty ?? 1,
-      name: it.name,
-      price: it.price ?? 0,
-      image: it.image ?? "",
-    })),
-    summary: { subtotal, tax, total },
-  };
-}
 
 function normalizeLines(order) {
-  const items = Array.isArray(order?.items) ? order.items : [];
+  const items = Array.isArray(order) ? order : []
   return items.map((it, idx) => {
-    const unit = Number(it.price) || 0;
-    const qty = Number(it.qty) || 1;
+    const unit = Number(it.productId.price) || 0;
+    const qty = Number(it.quantity) || 1;
     return {
-      lineId: `pay-${order?.id || "x"}-${idx}`,
-      itemId: it.itemId ?? it.id,
+      lineId: `pay-${order?._id || "x"}-${idx}`,
+      itemId: it?.productId?._id,
       qty,
-      item: { name: it.name, image: it.image },
+      item: { name: it?.productId?.name, image: it?.productId?.image },
       unit,
       lineTotal: unit * qty,
     };
@@ -55,13 +30,14 @@ function normalizeLines(order) {
 export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
+  const order = useOrderStore()
 
   const draft = panel.order;
-  const lines = useMemo(() => normalizeLines(draft), [draft]);
+  const lines = useMemo(() => normalizeLines(cart.lines), [cart.lines]);
 
-  const total = draft?.summary?.total ?? draft?.total ?? 0;
+  const total = cart.total
 
-  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [successOpen, setSuccessOpen] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
 
@@ -141,9 +117,9 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             <h3 className="text-sm font-semibold text-text">Payment method</h3>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: "COD", label: "COD", icon: "payments" },
-                { key: "QR", label: "QR", icon: "qr_code" },
-                { key: "Sepay", label: "Sepay", icon: "account_balance_wallet" },
+                { key: "cash", label: "COD", icon: "payments" },
+                { key: "momo", label: "Momo", icon: "momo" },
+                { key: "sepay", label: "Sepay", icon: "account_balance_wallet" },
               ].map((m) => {
                 const active = paymentMethod === m.key;
                 return (
@@ -191,17 +167,12 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             "shadow-card transition duration-200",
             "hover:shadow-lift active:scale-[0.99]"
           )}
-          onClick={() => {
-            const finalOrder = buildFinalOrderFromDraft(draft, paymentMethod);
-
-            // DEV: mark paid -> confirmed + save to local storage.
-            addOrder(finalOrder);
-
-            // clear cart after successful payment
-            cart.clear();
-
-            setSuccessOrder(finalOrder);
-            setSuccessOpen(true);
+          onClick={async () => {
+            const created = await order.createOrder({ paymentMethod });
+            if (created) {
+              setSuccessOpen(true);
+              setSuccessOrder(created);
+            }
           }}
         >
           Tôi đã thanh toán
@@ -210,7 +181,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
 
       <OrderSuccessModal
         open={successOpen}
-        order={successOrder}
+        order={order.lastOrder}
         onClose={() => setSuccessOpen(false)}
         onViewOrder={() => {
           if (!successOrder) return;

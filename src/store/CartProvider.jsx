@@ -1,71 +1,248 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CartContext } from "./cart.context";
 import { MENU_ITEMS } from "@/pages/Menu/menu.data";
+// Import API cart
+import {
+  getCart,
+  addToCart,
+  updateCartItemQuantity,
+  deleteCartItem,
+  clearCart as apiClearCart,
+} from "@/services/cart.service";
 
 export function CartProvider({ children }) {
+
   const [lines, setLines] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [canteenId, setCanteenId] = useState('')
 
-  const cartLines = useMemo(() => {
-    return lines.map((l) => {
-      const item = MENU_ITEMS.find((x) => x.id === l.itemId);
-      const unit = item?.price || 0;
-      return {
-        ...l,
-        item,
-        unit,
-        lineTotal: unit * l.qty,
-      };
-    });
-  }, [lines]);
+  /**
+ * ===============================
+ * 1️ LOAD CART KHI APP START
+ * ===============================
+ */
 
-  const count = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
-  const subtotal = useMemo(() => cartLines.reduce((sum, l) => sum + l.lineTotal, 0), [cartLines]);
-  const tax = useMemo(() => subtotal * 0.08, [subtotal]);
-  const total = useMemo(() => subtotal + tax, [subtotal, tax]);
-
-  const value = useMemo(
-    () => ({
-      lines,
-      cartLines,
-      count,
-      subtotal,
-      tax,
-      total,
-      addItem: (itemId, qty = 1) => {
-        const lineId = `line-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        setLines((prev) => [{ lineId, itemId, qty }, ...prev]);
-      },
-      incLine: (lineId) => setLines((prev) => prev.map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + 1 } : l))),
-      decLine: (lineId) =>
-        setLines((prev) =>
-          prev
-            .map((l) => (l.lineId === lineId ? { ...l, qty: Math.max(1, l.qty - 1) } : l))
-            .filter((l) => l.qty > 0)
-        ),
-      removeLine: (lineId) => setLines((prev) => prev.filter((l) => l.lineId !== lineId)),
-      clear: () => setLines([]),
-      replaceFromOrder: (order) => {
-        const raw = order?.items || order?.lines || [];
-        if (!Array.isArray(raw)) {
-          setLines([]);
-          return;
+  useEffect(() => {
+    let mounted = true // tránh setState khi component unmount
+    async function loadCart() {
+      setLoading(true)
+      try {
+        const res = await getCart()
+        if (mounted) {
+          setCanteenId(res.data.cart.canteenId._id || '')
+          setLines(res.data.cart.items || [])
         }
 
-        const next = raw
-          .map((it) => {
-            const itemId = it?.itemId ?? it?.id ?? it?.productId ?? it?.menuItemId;
-            const qty = it?.qty ?? it?.quantity ?? it?.count ?? 1;
-            if (!itemId) return null;
-            const lineId = `line-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-            return { lineId, itemId, qty: Number(qty) || 1 };
-          })
-          .filter(Boolean);
+      } catch (error) {
+        setError(error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCart()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
-        setLines(next);
-      },
-    }),
-    [lines, cartLines, count, subtotal, tax, total]
-  );
 
+  /**
+   * Hàm reload cart (dùng khi rollback)
+   */
+
+  const reloadCart = useCallback(async () => {
+    try {
+      const res = await getCart();
+      setCanteenId(res.data.cart.canteenId._id || '')
+      setLines(res.data.cart.items || []);
+    } catch (err) {
+      console.error("Reload cart failed", err);
+    }
+  }, []);
+
+  /**
+ * ===============================
+ * 2️ TÍNH TOÁN TỪ CART
+ * ===============================
+ */
+  // Tổng số lượng sản phẩm trong giỏ
+  const count = useMemo(() => {
+    return lines.reduce((sum, l) => sum + Number(l?.quantity || 0), 0);
+  }, [lines]);
+
+  // Tạm tính (chưa tax)
+  const subtotal = useMemo(() => {
+    return lines.reduce(
+      (sum, l) => sum + l.productId.price * l.quantity,
+      0
+    );
+  }, [lines]);
+
+  // Thuế 8%
+  const tax = useMemo(() => subtotal * 0.08, [subtotal]);
+
+  // Tổng tiền
+  const total = useMemo(() => subtotal + tax, [subtotal, tax]);
+
+  /**
+ * ===============================
+ * 3️ ADD ITEM – OPTIMISTIC UI
+ * ===============================
+ */
+
+  const addItem = useCallback(async (productId, qty = 1) => {
+    //  1. Cập nhật UI ngay (KHÔNG CHỜ API)
+    setLines((prev) => {
+      const found = prev.find((l) => l.productId._id === productId)
+
+      if (found) {
+        return prev.map((l) => (
+          l.productId === productId ? { ...l, quantity: l.quantity + qty } : l
+        ))
+      }
+      return [
+        {
+          productId,
+          quantity: qty,
+          product: {}
+        },
+        ...prev
+      ]
+    })
+    //  2. Gọi API để sync backend
+    try {
+      const res = await addToCart(productId, qty);
+      // đồng bộ lại cho chắc
+      setCanteenId(res.data.cart.canteenId._id)
+      setLines(res.data.cart.items);
+      toast.success("Đã thêm vào giỏ hàng", {
+        description: "Món ăn đã được thêm thành công.",
+      });
+    } catch (err) {
+      // 3. Nếu lỗi → rollback
+      reloadCart();
+      const message = err?.response?.data?.message || err?.message || "Thêm vào giỏ thất bại";
+      // Trường hợp khác canteen từ BE
+      if (message.toLowerCase().includes("different canteens")) {
+        toast.error("Không thể thêm vào giỏ", {
+          description: "Sản phẩm thuộc căng tin khác. Vui lòng xóa giỏ hiện tại trước khi thêm.",
+        });
+      } else {
+        toast.error("Thêm vào giỏ thất bại", { description: message });
+      }
+    }
+  }, [reloadCart])
+
+  /**
+ * ===============================
+ * 4️ TĂNG SỐ LƯỢNG
+ * ===============================
+ */
+  const incLine = useCallback(async (productId) => {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.productId._id === productId
+          ? { ...l, quantity: l.quantity + 1 }
+          : l
+      )
+    );
+
+    try {
+      const current = lines.find((l) => l.productId._id === productId);
+      await updateCartItemQuantity(productId, current.quantity + 1);
+    } catch {
+      reloadCart();
+    }
+  }, [lines, reloadCart]);
+
+  /**
+   * ===============================
+   * 5️ GIẢM SỐ LƯỢNG
+   * ===============================
+   */
+  const decLine = useCallback(async (productId) => {
+    setLines((prev) =>
+      prev
+        .map((l) =>
+          l.productId._id === productId
+            ? { ...l, quantity: l.quantity - 1 }
+            : l
+        )
+        .filter((l) => l.quantity > 0) // nếu =0 thì xóa
+    );
+
+    try {
+      const current = lines.find((l) => l.productId._id === productId);
+      await updateCartItemQuantity(productId, current.quantity - 1);
+    } catch {
+      reloadCart();
+    }
+  }, [lines, reloadCart]);
+
+  /**
+   * ===============================
+   * 6️ XÓA ITEM
+   * ===============================
+   */
+  const removeLine = useCallback(async (productId) => {
+    const backup = lines; // backup để rollback
+
+    setLines((prev) =>
+      prev.filter((l) => l.productId._id !== productId)
+    );
+
+    try {
+      await deleteCartItem(productId);
+    } catch {
+      setLines(backup);
+    }
+  }, [lines]);
+
+  const clearCart = useCallback(async () => {
+    try {
+      await apiClearCart();   // clear backend
+      setLines([]);           // clear UI
+      setCanteenId("");
+    } catch (e) {
+      console.error("Clear cart failed", e);
+    }
+  }, []);
+
+  /**
+    * ===============================
+    * 7️ CONTEXT VALUE
+    * ===============================
+    */
+  const value = useMemo(() => ({
+    lines,
+    loading,
+    error,
+    count,
+    subtotal,
+    tax,
+    total,
+    canteenId,
+    addItem,
+    incLine,
+    decLine,
+    removeLine,
+    clearCart
+  }), [
+    lines,
+    loading,
+    error,
+    count,
+    subtotal,
+    tax,
+    total,
+    canteenId,
+    addItem,
+    incLine,
+    decLine,
+    removeLine,
+    clearCart
+  ]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
