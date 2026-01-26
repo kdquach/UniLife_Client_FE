@@ -25,8 +25,8 @@ export async function getMyOrders(options = {}) {
 
 /** Get order by ID */
 export async function getOrderById(id) {
-    const res = await api.get(`/orders/${id}`);
-    return res.data; // { status, data: { order } }
+  const res = await api.get(`/orders/${id}`);
+  return res.data; // { status, data: { order } }
 }
 
 /**
@@ -51,5 +51,18 @@ export async function getOrderDetail(id) {
  */
 export async function createOrder(orderData) {
   const response = await api.post("/orders", orderData);
+  return response.data;
+}
+
+/**
+ * Re-order: Add items from an old order to cart
+ * @param {string} orderId - ID of the old order
+ * @param {string} currentCanteenId - Current canteen context (required by BE)
+ * @returns {Promise<Object>} - { status, data: { successItems, failedItems }, message }
+ */
+export async function reOrder(orderId, currentCanteenId) {
+  const response = await api.post(`/orders/${orderId}/re-order`, {
+    currentCanteenId,
+  });
   return response.data;
 }
