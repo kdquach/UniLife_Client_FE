@@ -224,3 +224,22 @@ export function getCurrentUser() {
 export function isAuthenticated() {
   return !!localStorage.getItem("unilife_access_token");
 }
+
+/**
+ * Doi mat khau nguoi dung
+ * @param {Object} payload - { currentPassword, newPassword, confirmPassword }
+ * @returns {Promise<Object>} - { message }
+ */
+export async function changePassword(payload) {
+  const { currentPassword, newPassword, confirmPassword } = payload;
+
+  const response = await api.post("/auth/change-password", {
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
+
+  return {
+    message: response.data.message,
+  };
+}
