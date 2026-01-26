@@ -4,6 +4,7 @@ import { useRightPanel } from "@/store/rightPanel.store.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import { money } from "@/utils/currency";
 import { formatDate } from "@/utils/formatDate";
+import PickupQRCode from "@/components/order/PickupQRCode.jsx";
 
 // Status mapping for display
 const STATUS_STYLES = {
@@ -229,27 +230,33 @@ export default function RightOrderDetailPanel({
                   <span>-{money(order.discount)}</span>
                 </div>
               )}
+              {/* Tax - tính 8% trên subtotal */}
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Thuế (8%)</span>
+                <span>
+                  {money(
+                    order.tax ||
+                      order.taxAmount ||
+                      (order.subTotal || 0) * 0.08,
+                  )}
+                </span>
+              </div>
               <div className="flex justify-between text-base font-bold text-gray-800 pt-2 border-t border-gray-200">
                 <span>Tổng cộng</span>
                 <span className="text-primary">{money(order.totalAmount)}</span>
               </div>
             </div>
 
-            {/* QR Code for pickup (if ready) */}
-            {order.pickupQRCode && order.status === "ready" && (
-              <div className="p-4 bg-green-50 rounded-xl text-center">
-                <p className="text-sm text-green-700 font-medium mb-2">
-                  Mã nhận hàng
-                </p>
-                <div className="bg-white p-3 rounded-lg inline-block">
-                  <p className="font-mono text-lg font-bold text-green-800">
-                    {order.pickupQRCode.code?.slice(0, 8).toUpperCase()}
-                  </p>
-                </div>
-                <p className="text-xs text-green-600 mt-2">
-                  Xuất trình mã này khi nhận hàng
-                </p>
-              </div>
+            {/* QR Code for pickup - hiển thị theo BE logic */}
+            {(order.status === "pending" ||
+              order.status === "confirmed" ||
+              order.status === "preparing" ||
+              order.status === "ready") && (
+              <PickupQRCode
+                orderId={order._id}
+                pickupCode={order.pickupQRCode?.code || order.orderNumber}
+                size={140}
+              />
             )}
           </div>
         )}
