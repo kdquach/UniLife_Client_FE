@@ -1,10 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
+import { toast } from "sonner";
+import { Modal } from "antd";
 import { useRightPanel } from "@/store/rightPanel.store.js";
+import { useCartStore } from "@/store/cart.store.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import { money } from "@/utils/currency";
 import { formatDate } from "@/utils/formatDate";
 import PickupQRCode from "@/components/order/PickupQRCode.jsx";
+import { reOrder } from "@/services/order.service.js";
 
 // Status mapping for display
 const STATUS_STYLES = {
@@ -38,7 +42,57 @@ export default function RightOrderDetailPanel({
   allowCollapse = true,
 }) {
   const panel = useRightPanel();
+  const cart = useCartStore();
   const order = panel.order || null;
+
+  // Re-order states
+  const [reordering, setReordering] = useState(false);
+  const [reorderResult, setReorderResult] = useState(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+
+  // Handle re-order
+  const handleReOrder = async () => {
+    if (!order?._id) return;
+
+    // Lấy canteenId từ order vì BE yêu cầu currentCanteenId
+    const currentCanteenId = order.canteenId?._id || order.canteenId;
+
+    if (!currentCanteenId) {
+      toast.error("Không thể đặt lại", {
+        description: "Thiếu thông tin Canteen.",
+      });
+      return;
+    }
+
+    setReordering(true);
+    try {
+      const response = await reOrder(order._id, currentCanteenId);
+      const { successItems, failedItems } = response.data;
+
+      // Reload cart để cập nhật UI
+      await cart.reloadCart();
+
+      if (failedItems && failedItems.length > 0) {
+        // Có món thất bại -> hiện modal chi tiết
+        setReorderResult({ successItems, failedItems });
+        setShowResultModal(true);
+      } else {
+        // Tất cả thành công
+        toast.success("Đã thêm vào giỏ hàng", {
+          description: `${successItems.length} món đã được thêm thành công!`,
+        });
+        panel.openCart(); // Mở cart panel
+      }
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Có lỗi xảy ra khi đặt lại đơn hàng";
+      toast.error("Không thể đặt lại", { description: message });
+    } finally {
+      setReordering(false);
+    }
+  };
 
   // Normalize items from API response
   const items = useMemo(() => {
@@ -268,20 +322,97 @@ export default function RightOrderDetailPanel({
           <div className="bg-white border-t border-gray-100 px-5 py-4">
             <button
               type="button"
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-lg transition duration-200 hover:shadow-xl active:scale-[0.98]"
+              disabled={reordering}
+              className={clsx(
+                "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-lg transition duration-200",
+                reordering
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:shadow-xl active:scale-[0.98]",
+              )}
               style={{
                 background: "linear-gradient(135deg, #ff5532, #ff6a4a)",
               }}
-              onClick={() => {
-                // TODO: Implement re-order functionality
-                console.log("Re-order:", order);
-              }}
+              onClick={handleReOrder}
             >
-              <MaterialIcon name="replay" className="text-[18px]" />
-              Đặt lại đơn này
+              {reordering ? (
+                <>
+                  <span className="animate-spin">
+                    <MaterialIcon
+                      name="progress_activity"
+                      className="text-[18px]"
+                    />
+                  </span>
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <MaterialIcon name="replay" className="text-[18px]" />
+                  Đặt lại đơn này
+                </>
+              )}
             </button>
           </div>
         )}
+
+      {/* Re-order Result Modal */}
+      <Modal
+        open={showResultModal}
+        onCancel={() => setShowResultModal(false)}
+        footer={null}
+        centered
+        width={480}
+        title={
+          <div className="flex items-center gap-2">
+            <MaterialIcon name="info" className="text-blue-500" />
+            <span>Kết quả đặt lại đơn</span>
+          </div>
+        }
+      >
+        {reorderResult && (
+          <div className="space-y-4">
+            {/* Success items */}
+            {reorderResult.successItems?.length > 0 && (
+              <div className="p-3 bg-green-50 rounded-xl">
+                <p className="text-sm font-semibold text-green-700 mb-2">
+                  ✓ Đã thêm {reorderResult.successItems.length} món:
+                </p>
+                <ul className="text-sm text-green-600 space-y-1">
+                  {reorderResult.successItems.map((name, i) => (
+                    <li key={i}>• {name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Failed items */}
+            {reorderResult.failedItems?.length > 0 && (
+              <div className="p-3 bg-red-50 rounded-xl">
+                <p className="text-sm font-semibold text-red-700 mb-2">
+                  ✗ Không thể thêm {reorderResult.failedItems.length} món:
+                </p>
+                <ul className="text-sm text-red-600 space-y-1">
+                  {reorderResult.failedItems.map((item, i) => (
+                    <li key={i}>
+                      • <strong>{item.name}</strong>: {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="w-full h-10 rounded-lg bg-primary text-white text-sm font-semibold"
+              onClick={() => {
+                setShowResultModal(false);
+                panel.openCart();
+              }}
+            >
+              Xem giỏ hàng
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
