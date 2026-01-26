@@ -1,5 +1,7 @@
 import clsx from 'clsx';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Select } from 'antd';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
@@ -8,6 +10,7 @@ import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
 import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
+import ResetLink from '../../components/menu/ResetLink';
 
 function Chip({ active, children, onClick }) {
   return (
@@ -15,10 +18,10 @@ function Chip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={clsx(
-        'rounded-full px-4 py-1.5 text-sm font-medium shadow-card transition duration-200',
+        'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200',
         active
           ? 'bg-primary text-inverse shadow-lift'
-          : 'bg-white/80 text-muted hover:bg-white hover:shadow-lift'
+          : 'bg-white/80 text-muted shadow-card hover:bg-white hover:shadow-lift'
       )}
     >
       {children}
@@ -26,63 +29,124 @@ function Chip({ active, children, onClick }) {
   );
 }
 
+function useHorizontalOverflow(ref) {
+  const [overflow, setOverflow] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setOverflow(el.scrollWidth > el.clientWidth);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  return overflow;
+}
+
 export default function MenuPage() {
   const cart = useCartStore();
   const panel = useRightPanel();
+  const categoryRef = useRef(null);
+  const isOverflow = useHorizontalOverflow(categoryRef);
+  const { clearCart } = useCartStore();
+
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
-  const [activeCategory, setActiveCategory] = useState('All');
+
+  const [activeCategoryId, setActiveCategoryId] = useState(null); // null = All
+  const [sortOption, setSortOption] = useState('');
+  const isDefaultFilter = !activeCategoryId && !sortOption;
+  const [searchParams] = useSearchParams();
   const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
 
-  // Fetch products when selectedCanteen changes
+  // Reset filter khi đổi canteen
   useEffect(() => {
-    if (selectedCanteen?.id) {
-      fetchByCanteen(selectedCanteen.id, { limit: 100, status: 'available' });
-    } else {
-      fetchAll({ limit: 100, status: 'available' });
-    }
-    setActiveCategory('All');
-    // eslint-disable-next-line
+    setActiveCategoryId(null);
+    setSortOption('');
   }, [selectedCanteen?.id]);
 
-  // Fetch wishlist on mount (requires authenticated user)
+  // Clear cart khi đổi canteen
   useEffect(() => {
-    fetchWishlist().catch((err) => {
-      console.warn('Wishlist not loaded:', err?.message || err);
-    });
+    if (selectedCanteen?.id) {
+      cart.clearCart();
+    }
+  }, [selectedCanteen?.id, clearCart]);
+
+  useEffect(() => {
+    const params = {
+      limit: 100,
+      status: 'available',
+    };
+
+    // Search
+    const search = searchParams.get('search');
+    if (search?.trim()) {
+      params.search = search.trim();
+    }
+
+    // Category filter (dùng categoryId)
+    if (activeCategoryId) {
+      params.categoryId = activeCategoryId;
+    }
+
+    // Sort
+    if (sortOption) {
+      const map = {
+        'name-asc': 'name',
+        'name-desc': '-name',
+        'price-asc': 'price',
+        'price-desc': '-price',
+      };
+      params.sort = map[sortOption];
+    }
+
+    if (selectedCanteen?.id) {
+      fetchByCanteen(selectedCanteen.id, params);   // ✅ Truyền đầy đủ params
+    } else {
+      fetchAll(params);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCanteen?.id, activeCategoryId, sortOption, searchParams, fetchByCanteen, fetchAll]);
+
+  // Fetch wishlist
+  useEffect(() => {
+    fetchWishlist().catch((err) => console.warn('Wishlist not loaded:', err?.message));
   }, [fetchWishlist]);
 
-  // Extract unique categories from products
-  const categories = useMemo(() => {
-    const cats = new Set(
-      products.map((p) => p.categoryId?.name).filter(Boolean)
-    );
-    return ['All', ...Array.from(cats).sort()];
+  // Build category list with id
+  const categoryOptions = useMemo(() => {
+    const map = new Map(); // id → name
+    products.forEach((p) => {
+      const cat = p.categoryId;
+      if (cat?._id && cat.name) {
+        map.set(cat._id.toString(), cat.name);
+      }
+    });
+
+    const options = Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [{ id: null, name: 'All' }, ...options];
   }, [products]);
 
-  const items = useMemo(() => {
-    if (activeCategory === 'All') return products;
-    return products.filter((x) => x.categoryId?.name === activeCategory);
-  }, [activeCategory, products]);
+  const items = products;
 
   return (
     <div className="grid gap-6">
       <section className="grid min-w-0 gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text">Menu</h1>
-          <p className="text-sm text-muted">
-            Choose from our delicious selection
-          </p>
+          <p className="text-sm text-muted">Choose from our delicious selection</p>
         </div>
 
-        {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
             <Loader />
           </div>
         )}
 
-        {/* Error State */}
         {error && !loading && (
           <div className="rounded-lg bg-red-50 p-4 text-red-700">
             <p className="font-medium">Failed to load menu</p>
@@ -96,19 +160,66 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* Content */}
         {!loading && (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              {categories.map((c) => (
-                <Chip
-                  key={c}
-                  active={activeCategory === c}
-                  onClick={() => setActiveCategory(c)}
-                >
-                  {c}
-                </Chip>
-              ))}
+            <div className="flex w-full items-center justify-between gap-4 flex-wrap">
+              {/* Category chips */}
+              <div className="relative min-w-0 flex-1">
+                {isOverflow && (
+                  <button
+                    onClick={() => categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+                    className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                  >
+                    ‹
+                  </button>
+                )}
+
+                <div ref={categoryRef} className="flex gap-2 overflow-x-auto scrollbar-hide">
+                  {categoryOptions.map((cat) => (
+                    <Chip
+                      key={cat.id ?? 'all'}
+                      active={activeCategoryId === cat.id}
+                      onClick={() => setActiveCategoryId(cat.id)}
+                    >
+                      {cat.name}
+                    </Chip>
+                  ))}
+                </div>
+
+                {isOverflow && (
+                  <button
+                    onClick={() => categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+                    className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                  >
+                    ›
+                  </button>
+                )}
+              </div>
+
+              {/* Reset + Sort */}
+              <div className="flex items-center gap-3 shrink-0">
+                <ResetLink
+                  disabled={isDefaultFilter}
+                  onClick={() => {
+                    setActiveCategoryId(null);
+                    setSortOption('');
+                  }}
+                />
+
+                <Select
+                  value={sortOption || ''}
+                  onChange={setSortOption}
+                  size="middle"
+                  className="min-w-40"
+                  options={[
+                    { value: '', label: 'Mặc định' },
+                    { value: 'name-asc', label: 'Tên A → Z' },
+                    { value: 'name-desc', label: 'Tên Z → A' },
+                    { value: 'price-desc', label: 'Giá cao → thấp' },
+                    { value: 'price-asc', label: 'Giá thấp → cao' },
+                  ]}
+                />
+              </div>
             </div>
 
             {items.length === 0 ? (
@@ -128,11 +239,7 @@ export default function MenuPage() {
                     price={it.price}
                     inCart={cart.lines?.some((l) => l.itemId === it._id)}
                     wishlisted={wishlistIds.has(it._id)}
-                    onToggleWishlist={() => {
-                      toggleWishlist(it._id).catch((err) => {
-                        console.error('Toggle wishlist failed:', err);
-                      });
-                    }}
+                    onToggleWishlist={() => toggleWishlist(it._id)}
                     onAddToCart={() => {
                       cart.addItem(it._id, 1);
                       panel.openCart();

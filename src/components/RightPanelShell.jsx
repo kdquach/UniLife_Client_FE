@@ -3,7 +3,7 @@ import clsx from "clsx";
 import RightCartPanel from "@/components/RightCartPanel.jsx";
 import RightMenuDetailPanel from "@/components/RightMenuDetailPanel.jsx";
 import OrderPaymentPanel from "@/components/OrderPaymentPanel.jsx";
-import OrderDetailPanel from "@/components/OrderDetailPanel.jsx";
+import RightOrderDetailPanel from "@/components/RightOrderDetailPanel.jsx";
 import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
 import { money } from "@/utils/currency.js";
@@ -86,7 +86,9 @@ export default function RightPanelShell({ mode = "shopping" }) {
 
     const readNumber = (name, fallback) => {
       try {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(name)?.trim();
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue(name)
+          ?.trim();
         if (!raw) return fallback;
         const n = Number.parseFloat(raw);
         return Number.isFinite(n) ? n : fallback;
@@ -122,22 +124,29 @@ export default function RightPanelShell({ mode = "shopping" }) {
         <div
           className={clsx(
             "fixed z-40 overflow-hidden bg-surface transform-gpu",
-            "transition-[top,right,width,height,border-radius,transform,opacity] duration-450 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            "transition-[top,right,width,height,border-radius,transform,opacity] duration-450 ease-[cubic-bezier(0.16,1,0.3,1)]",
           )}
           style={{
             right: rightOffset,
-            top: expanded ? "calc(var(--header-h) + 24px)" : `calc(100vh - ${24 + pillHeight}px)`,
+            top: expanded
+              ? "calc(var(--header-h) + 24px)"
+              : `calc(100vh - ${24 + pillHeight}px)`,
             width: expanded ? width : pillWidth,
-            height: expanded ? "calc(100vh - var(--header-h) - 48px)" : pillHeight,
+            height: expanded
+              ? "calc(100vh - var(--header-h) - 48px)"
+              : pillHeight,
             borderRadius: expanded ? "var(--radius-surface)" : "9999px",
-            willChange: "top,right,width,height,border-radius,box-shadow,transform,opacity",
+            willChange:
+              "top,right,width,height,border-radius,box-shadow,transform,opacity",
           }}
         >
           {/* Expanded content (crossfade) */}
           <div
             className={clsx(
               "h-full transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              expanded ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
+              expanded
+                ? "opacity-100 translate-y-0"
+                : "pointer-events-none opacity-0 -translate-y-1",
             )}
           >
             {view === "detail" ? (
@@ -145,7 +154,7 @@ export default function RightPanelShell({ mode = "shopping" }) {
             ) : view === "payment" ? (
               <OrderPaymentPanel allowCollapse={allowCollapse} />
             ) : view === "order" ? (
-              <OrderDetailPanel allowCollapse={allowCollapse} />
+              <RightOrderDetailPanel allowCollapse={allowCollapse} />
             ) : (
               <RightCartPanel allowCollapse={allowCollapse} />
             )}
@@ -159,8 +168,10 @@ export default function RightPanelShell({ mode = "shopping" }) {
               "group",
               "absolute inset-0 flex items-center justify-between gap-2 px-4 text-[12px] font-semibold",
               "transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              expanded ? "pointer-events-none opacity-0 translate-y-1" : "opacity-100 translate-y-0",
-              "text-slate-700"
+              expanded
+                ? "pointer-events-none opacity-0 translate-y-1"
+                : "opacity-100 translate-y-0",
+              "text-slate-700",
             )}
             aria-label="Open cart panel"
           >
@@ -173,7 +184,9 @@ export default function RightPanelShell({ mode = "shopping" }) {
               ) : null}
             </span>
 
-            <span className="min-w-0 flex-1 truncate text-center">{money(cart.total)}</span>
+            <span className="min-w-0 flex-1 truncate text-center">
+              {money(cart.total)}
+            </span>
 
             <span className="text-slate-400 transition duration-200 group-hover:text-primary">
               <MaterialIcon name="chevron_right" className="text-[18px]" />
@@ -197,7 +210,7 @@ export default function RightPanelShell({ mode = "shopping" }) {
             ) : view === "payment" ? (
               <OrderPaymentPanel allowCollapse={allowCollapse} />
             ) : view === "order" ? (
-              <OrderDetailPanel allowCollapse={allowCollapse} />
+              <RightOrderDetailPanel allowCollapse={allowCollapse} />
             ) : (
               <RightCartPanel allowCollapse={allowCollapse} />
             )}
@@ -217,7 +230,7 @@ export default function RightPanelShell({ mode = "shopping" }) {
             "rounded-full bg-surface px-5",
             "text-sm font-medium text-text",
             "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-            "left-1/2 w-72 -translate-x-1/2"
+            "left-1/2 w-72 -translate-x-1/2",
           )}
         >
           <span className="relative grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">
@@ -233,9 +246,11 @@ export default function RightPanelShell({ mode = "shopping" }) {
             {money(cart.total)}
           </span>
 
-          <MaterialIcon name="chevron_right" className="text-[20px] text-muted/60 transition duration-200 group-hover:text-primary" />
+          <MaterialIcon
+            name="chevron_right"
+            className="text-[20px] text-muted/60 transition duration-200 group-hover:text-primary"
+          />
         </button>
-
       ) : null}
 
       <OrderSuccessModal
