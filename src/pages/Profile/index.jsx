@@ -59,6 +59,7 @@ export default function ProfilePage() {
       fullName: "",
       phone: "",
    });
+   const [errors, setErrors] = useState({ fullName: "", phone: "" });
 
    /* ================= FETCH PROFILE ================= */
    useEffect(() => {
@@ -228,16 +229,32 @@ export default function ProfilePage() {
                         <Input
                            label="Họ và tên"
                            value={draft.fullName}
-                           onChange={(e) =>
-                              setDraft((p) => ({ ...p, fullName: e.target.value }))
-                           }
+                           onChange={(e) => {
+                              const value = e.target.value;
+                              // Only allow letters, spaces, Vietnamese chars
+                              if (/^[\p{L} .'-]*$/u.test(value) || value === "") {
+                                 setDraft((p) => ({ ...p, fullName: value }));
+                                 setErrors((err) => ({ ...err, fullName: "" }));
+                              } else {
+                                 setErrors((err) => ({ ...err, fullName: "Chỉ nhập chữ, không số/ký tự đặc biệt" }));
+                              }
+                           }}
+                           error={errors.fullName}
                         />
                         <Input
                            label="Số điện thoại"
                            value={draft.phone}
-                           onChange={(e) =>
-                              setDraft((p) => ({ ...p, phone: e.target.value }))
-                           }
+                           onChange={(e) => {
+                              const value = e.target.value;
+                              // Only allow 10 digits, no letters
+                              if (/^\d{0,10}$/.test(value)) {
+                                 setDraft((p) => ({ ...p, phone: value }));
+                                 setErrors((err) => ({ ...err, phone: "" }));
+                              } else {
+                                 setErrors((err) => ({ ...err, phone: "Số điện thoại phải là 10 số, không nhập chữ" }));
+                              }
+                           }}
+                           error={errors.phone}
                         />
 
                         <div className="md:col-span-2 flex gap-3 pt-2">
