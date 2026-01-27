@@ -7,14 +7,12 @@ import MaterialIcon from "@/components/MaterialIcon.jsx";
 import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { useOrderStore } from "@/store/order.store.js";
-const { paymentMomo } = await import('@/services/payment.service.js');
+const { paymentMomo } = await import("@/services/payment.service.js");
 import { useSearchParams } from "react-router-dom";
 import { getOrderById } from "@/services/order.service.js";
 
-
-
 function normalizeLines(order) {
-  const items = Array.isArray(order) ? order : []
+  const items = Array.isArray(order) ? order : [];
   return items.map((it, idx) => {
     const unit = Number(it.productId.price) || 0;
     const qty = Number(it.quantity) || 1;
@@ -57,14 +55,15 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   useEffect(() => {
     const id = paymentResult.orderId;
     if (!id) return;
-    if (paymentResult.status === 'completed') {
+    if (paymentResult.status === "completed") {
       cart.clearCart();
     }
 
-
-
     // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
-    setSuccessOrder((prev) => prev || order.lastOrder || { _id: id, payment: { method: "momo" } });
+    setSuccessOrder(
+      (prev) =>
+        prev || order.lastOrder || { _id: id, payment: { method: "momo" } },
+    );
     setSuccessOpen(true);
 
     // tránh mở lại modal khi refresh
@@ -77,6 +76,8 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
       // 1. Tạo order pending
       const created = await order.createOrder({
         paymentMethod: "momo",
+        voucherCode: draft?.voucherCode,
+        campusId: draft?.campusId,
       });
       if (!created) return;
 
@@ -115,7 +116,9 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
         </div>
         <div className="flex-1 grid place-items-center p-8 text-center">
           <div className="grid gap-2">
-            <p className="text-sm font-semibold text-text">Chưa có đơn để thanh toán</p>
+            <p className="text-sm font-semibold text-text">
+              Chưa có đơn để thanh toán
+            </p>
             <button
               type="button"
               className="mt-2 h-10 rounded-2xl bg-primary px-4 text-sm font-semibold text-inverse"
@@ -174,7 +177,9 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
           <div className="mt-4 rounded-3xl bg-app-bg p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted">Tổng tiền</span>
-              <span className="text-lg font-extrabold text-primary">{money(total)}</span>
+              <span className="text-lg font-extrabold text-primary">
+                {money(total)}
+              </span>
             </div>
           </div>
 
@@ -184,7 +189,11 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
               {[
                 { key: "cash", label: "COD", icon: "payments" },
                 { key: "momo", label: "Momo", icon: "momo" },
-                { key: "sepay", label: "Sepay", icon: "account_balance_wallet" },
+                {
+                  key: "sepay",
+                  label: "Sepay",
+                  icon: "account_balance_wallet",
+                },
               ].map((m) => {
                 const active = paymentMethod === m.key;
                 return (
@@ -194,12 +203,27 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                     onClick={() => setPaymentMethod(m.key)}
                     className={clsx(
                       "grid h-14 place-items-center rounded-xl px-2 transition",
-                      active ? "bg-primary text-inverse" : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80"
+                      active
+                        ? "bg-primary text-inverse"
+                        : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80",
                     )}
                   >
                     <span className="grid place-items-center">
-                      <MaterialIcon name={m.icon} className={clsx("text-[18px]", active ? "text-inverse" : "text-muted")} />
-                      <span className={clsx("text-[11px] font-semibold", active ? "text-inverse" : "text-text")}>{m.label}</span>
+                      <MaterialIcon
+                        name={m.icon}
+                        className={clsx(
+                          "text-[18px]",
+                          active ? "text-inverse" : "text-muted",
+                        )}
+                      />
+                      <span
+                        className={clsx(
+                          "text-[11px] font-semibold",
+                          active ? "text-inverse" : "text-text",
+                        )}
+                      >
+                        {m.label}
+                      </span>
                     </span>
                   </button>
                 );
@@ -214,9 +238,13 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             </div>
             <div className="mt-3 grid place-items-center rounded-2xl bg-white p-5">
               <div className="grid h-44 w-44 place-items-center rounded-2xl border border-border bg-surface">
-                <span className="text-xs font-semibold text-muted">QR placeholder</span>
+                <span className="text-xs font-semibold text-muted">
+                  QR placeholder
+                </span>
               </div>
-              <p className="mt-2 text-xs text-muted">TODO(api): generate QR from orderId</p>
+              <p className="mt-2 text-xs text-muted">
+                TODO(api): generate QR from orderId
+              </p>
             </div>
           </div>
         </div>
@@ -230,18 +258,20 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             "rounded-2xl text-sm font-semibold text-inverse",
             "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
             "shadow-card transition duration-200",
-            "hover:shadow-lift active:scale-[0.99]"
+            "hover:shadow-lift active:scale-[0.99]",
           )}
           onClick={async () => {
             if (paymentMethod === "momo") {
               await handlePaymentMomo();
               // Wait for MoMo callback to confirm status; don't clear cart here
-              return
+              return;
             } else {
               const created = await order.createOrder({
                 paymentMethod,
+                voucherCode: draft?.voucherCode,
+                campusId: draft?.campusId,
               });
-              console.log("🚀 ~ OrderPaymentPanel ~ created:", created)
+              console.log("🚀 ~ OrderPaymentPanel ~ created:", created);
               if (created) {
                 // Fetch full order to populate canteen info for detail view
                 let full = created;
@@ -250,16 +280,14 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                   full = resp?.data?.order || created;
                 } catch (e) {
                   // fallback if fetch fails
+                  console.error("Fallback: using created order data", e);
                 }
                 setSuccessOrder(full);
                 setSuccessOpen(true);
                 cart.clearCart();
-
               }
             }
-
-          }
-          }
+          }}
         >
           Tôi đã thanh toán
         </button>

@@ -3,7 +3,6 @@ import { OrderContext } from "./order.context";
 import { createOrder as apiCreateOrder } from "@/services/order.service";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store.js";
-import { paymentMomo } from "../services/payment.service";
 
 export function OrderProvider({ children }) {
   const cart = useCartStore();
@@ -11,55 +10,67 @@ export function OrderProvider({ children }) {
   const [creating, setCreating] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
 
-  const createOrder = useCallback(async ({ paymentMethod, note }) => {
-    if (cart.lines.length === 0) {
-      toast.error("Giỏ hàng trống");
-      return null;
-    }
+  const createOrder = useCallback(
+    async ({ paymentMethod, note, voucherCode, campusId }) => {
+      if (cart.lines.length === 0) {
+        toast.error("Giỏ hàng trống");
+        return null;
+      }
 
-    setCreating(true);
-    try {
-      const payload = {
-        canteenId: cart.canteenId,
-        items: cart.lines.map(l => ({
-          productId: l.productId._id,
-          productName: l.productId.name ?? '',
-          quantity: l.quantity ?? 1,
-          price: l.productId.price ?? 0
-        })),
-        payment: { method: paymentMethod },
-        note,
-        summary: {
-          subtotal: cart.subtotal,
-          tax: cart.tax,
-          total: cart.total,
-        },
-      };
+      setCreating(true);
+      try {
+        const payload = {
+          canteenId: cart.canteenId,
+          items: cart.lines.map((l) => ({
+            productId: l.productId._id,
+            productName: l.productId.name ?? "",
+            quantity: l.quantity ?? 1,
+            price: l.productId.price ?? 0,
+          })),
+          payment: { method: paymentMethod },
+          note,
+          summary: {
+            subtotal: cart.subtotal,
+            tax: cart.tax,
+            total: cart.total,
+          },
+        };
 
-      const res = await apiCreateOrder(payload);
+        // Add voucher data if present
+        if (voucherCode) {
+          payload.voucherCode = voucherCode;
+        }
+        if (campusId) {
+          payload.campusId = campusId;
+        }
 
-      const order = res.data.order;
+        const res = await apiCreateOrder(payload);
 
-      setLastOrder(order);
-      toast.success("Đặt hàng thành công");
-      return order;
-    } catch (e) {
-      toast.error("Đặt hàng thất bại");
-      throw e;
-    } finally {
-      setCreating(false);
-    }
-  }, [cart]);
+        const order = res.data.order;
 
-  const value = useMemo(() => ({
-    creating,
-    lastOrder,
-    createOrder,
-  }), [creating, lastOrder, createOrder]);
+        setLastOrder(order);
+        toast.success("Đặt hàng thành công");
+        return order;
+      } catch (e) {
+        toast.error("Đặt hàng thất bại");
+        throw e;
+      } finally {
+        setCreating(false);
+      }
+    },
+    [cart],
+  );
+
+  const value = useMemo(
+    () => ({
+      creating,
+      lastOrder,
+      createOrder,
+    }),
+    [creating, lastOrder, createOrder],
+  );
 
   return (
-    <OrderContext.Provider value={value}>
-      {children}
-    </OrderContext.Provider>
+    <OrderContext.Provider value={value}>{children}</OrderContext.Provider>
   );
 }
