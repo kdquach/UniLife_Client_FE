@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
+import { useCampusStore } from "@/store/useCampusStore.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import momoLogo from "@/assets/images/momo.png";
 import sepayLogo from "@/assets/images/sepay.png";
@@ -9,13 +10,17 @@ import momoActiveLogo from "@/assets/images/momo-active.png";
 import sepayActiveLogo from "@/assets/images/sepay-active.png";
 import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSummaryCard from "@/components/cart/OrderSummaryCard.jsx";
+import VoucherInput from "@/components/cart/VoucherInput.jsx";
 
 export default function RightCartPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
+  const { selectedCampus } = useCampusStore();
   const hasItems = cart.count > 0;
 
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const itemCountLabel = useMemo(() => {
     const n = cart.count || 0;
@@ -23,14 +28,22 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
   }, [cart.count]);
 
   const deliveryFee = 0;
-  const discount = 0;
+
+  // Calculate final total after discount
+  const finalTotal = useMemo(() => {
+    return Math.max(0, cart.total - discountAmount);
+  }, [cart.total, discountAmount]);
 
   return (
     <div className={clsx("flex h-full flex-col", className)}>
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid">
-          <h1 className="text-lg   font-semibold text-text">Your Order Summary</h1>
-          <p className="text-xs text-muted">{hasItems ? itemCountLabel : "No items yet"}</p>
+          <h1 className="text-lg   font-semibold text-text">
+            Your Order Summary
+          </h1>
+          <p className="text-xs text-muted">
+            {hasItems ? itemCountLabel : "No items yet"}
+          </p>
         </div>
 
         {allowCollapse ? (
@@ -58,7 +71,9 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                   <MaterialIcon name="shopping_cart" className="text-[54px]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-text">Giỏ hàng chưa có món ăn</p>
+                  <p className="text-sm font-semibold text-text">
+                    Giỏ hàng chưa có món ăn
+                  </p>
                   <p className="text-sm text-muted">Bạn chọn đi nhé.</p>
                 </div>
               </div>
@@ -103,17 +118,39 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
 
             {/* Bottom blocks */}
             <div className="mt-auto px-5 pb-5 pt-4 grid gap-4">
+              {/* Voucher Input */}
+              <div className="grid gap-2">
+                <h3 className="text-sm font-semibold text-text">Mã giảm giá</h3>
+                <VoucherInput
+                  subtotal={cart.subtotal}
+                  items={cart.lines}
+                  campusId={selectedCampus}
+                  appliedVoucher={appliedVoucher}
+                  discountAmount={discountAmount}
+                  onApply={(voucher, amount) => {
+                    setAppliedVoucher(voucher);
+                    setDiscountAmount(amount);
+                  }}
+                  onRemove={() => {
+                    setAppliedVoucher(null);
+                    setDiscountAmount(0);
+                  }}
+                />
+              </div>
+
               <OrderSummaryCard
                 subtotal={cart.subtotal}
                 tax={cart.tax}
-                discount={discount}
+                discount={discountAmount}
                 deliveryFee={deliveryFee}
-                total={cart.total}
+                total={finalTotal}
               />
 
               {/* Payment methods */}
               <div className="grid gap-2">
-                <h3 className="text-sm font-semibold text-text">Payment Method</h3>
+                <h3 className="text-sm font-semibold text-text">
+                  Payment Method
+                </h3>
 
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -146,7 +183,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                           "group grid h-14 place-items-center rounded-xl px-2 transition",
                           active
                             ? "bg-primary text-inverse"
-                            : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80"
+                            : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80",
                         )}
                         aria-label={`Pay with ${m.label}`}
                       >
@@ -163,7 +200,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                                 name={m.icon}
                                 className={clsx(
                                   "text-[18px] transition-colors",
-                                  active ? "text-inverse" : "text-muted"
+                                  active ? "text-inverse" : "text-muted",
                                 )}
                               />
                             )}
@@ -172,7 +209,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                           <span
                             className={clsx(
                               "text-[11px] font-semibold transition-colors",
-                              active ? "text-inverse" : "text-text"
+                              active ? "text-inverse" : "text-text",
                             )}
                           >
                             {m.label}
@@ -183,7 +220,6 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                   })}
                 </div>
               </div>
-
             </div>
           </>
         )}
@@ -198,7 +234,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
               "rounded-2xl text-sm font-semibold text-inverse",
               "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
               "shadow-card transition duration-200",
-              "hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20 active:scale-[0.99]"
+              "hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20 active:scale-[0.99]",
             )}
             onClick={() => {
               const draft = {
@@ -216,8 +252,12 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
                 summary: {
                   subtotal: cart.subtotal,
                   tax: cart.tax,
-                  total: cart.total,
+                  discount: discountAmount,
+                  total: finalTotal,
                 },
+                // Voucher data for checkout
+                voucherCode: appliedVoucher?.code || null,
+                campusId: selectedCampus || null,
               };
 
               panel.openPayment?.(draft);
