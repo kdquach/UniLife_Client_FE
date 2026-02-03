@@ -7,6 +7,10 @@ import MaterialIcon from "@/components/MaterialIcon.jsx";
 import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { useOrderStore } from "@/store/order.store.js";
+import momoLogo from "@/assets/images/momo.png";
+import sepayLogo from "@/assets/images/sepay.png";
+import momoActiveLogo from "@/assets/images/momo-active.png";
+import sepayActiveLogo from "@/assets/images/sepay-active.png";
 const { paymentMomo } = await import("@/services/payment.service.js");
 import { useSearchParams } from "react-router-dom";
 import { getOrderById } from "@/services/order.service.js";
@@ -187,13 +191,9 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             <h3 className="text-sm font-semibold text-text">Payment method</h3>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: "cash", label: "COD", icon: "payments" },
-                { key: "momo", label: "Momo", icon: "momo" },
-                {
-                  key: "sepay",
-                  label: "Sepay",
-                  icon: "account_balance_wallet",
-                },
+                { key: "cash", label: "Cash", icon: "payments" },
+                { key: "momo", label: "MoMo", logo: momoLogo, activeLogo: momoActiveLogo },
+                { key: "sepay", label: "Sepay", logo: sepayLogo, activeLogo: sepayActiveLogo },
               ].map((m) => {
                 const active = paymentMethod === m.key;
                 return (
@@ -209,13 +209,23 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                     )}
                   >
                     <span className="grid place-items-center">
-                      <MaterialIcon
-                        name={m.icon}
-                        className={clsx(
-                          "text-[18px]",
-                          active ? "text-inverse" : "text-muted",
+                      <span className="grid h-8 w-8 place-items-center rounded-md">
+                        {m.logo ? (
+                          <img
+                            src={active ? m.activeLogo : m.logo}
+                            alt={m.label}
+                            className="h-8 w-8 object-contain"
+                          />
+                        ) : (
+                          <MaterialIcon
+                            name={m.icon}
+                            className={clsx(
+                              "text-[18px]",
+                              active ? "text-inverse" : "text-muted",
+                            )}
+                          />
                         )}
-                      />
+                      </span>
                       <span
                         className={clsx(
                           "text-[11px] font-semibold",

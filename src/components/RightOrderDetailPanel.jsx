@@ -12,12 +12,12 @@ import { reOrder } from "@/services/order.service.js";
 
 // Status mapping for display
 const STATUS_STYLES = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  confirmed: "bg-blue-100 text-blue-800 border-blue-200",
-  preparing: "bg-purple-100 text-purple-800 border-purple-200",
-  ready: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
+  pending: "bg-warning/10 text-warning border-warning/20",
+  confirmed: "bg-info/10 text-info border-info/20",
+  preparing: "bg-primary/10 text-primary border-primary/20",
+  ready: "bg-info/10 text-info border-info/20",
+  completed: "bg-success/10 text-success border-success/20",
+  cancelled: "bg-danger/10 text-danger border-danger/20",
 };
 
 const STATUS_LABELS = {
@@ -155,7 +155,7 @@ export default function RightOrderDetailPanel({
           <div className="p-5 space-y-5">
             {/* Canteen Info */}
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-surfaceMuted flex items-center justify-center text-muted flex-shrink-0">
                 {order.canteenId?.image ? (
                   <img
                     src={order.canteenId.image}
@@ -203,7 +203,7 @@ export default function RightOrderDetailPanel({
                     key={item.lineId}
                     className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-300 flex-shrink-0 overflow-hidden">
+                    <div className="w-12 h-12 rounded-card bg-surfaceMuted flex items-center justify-center text-muted flex-shrink-0 overflow-hidden">
                       {item.image && item.image !== "default.jpg" ? (
                         <img
                           src={item.image}
@@ -319,19 +319,16 @@ export default function RightOrderDetailPanel({
       {/* Footer - Re-order button (only for completed or cancelled orders) */}
       {order &&
         (order.status === "completed" || order.status === "cancelled") && (
-          <div className="bg-white border-t border-gray-100 px-5 py-4">
+          <div className="bg-surface border-t border-divider px-5 py-4">
             <button
               type="button"
               disabled={reordering}
               className={clsx(
-                "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-lg transition duration-200",
+                "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-inverse bg-primary shadow-card transition duration-200",
                 reordering
                   ? "opacity-70 cursor-not-allowed"
-                  : "hover:shadow-xl active:scale-[0.98]",
+                  : "hover:bg-primaryHover hover:shadow-lift active:scale-[0.98]",
               )}
-              style={{
-                background: "linear-gradient(135deg, #ff5532, #ff6a4a)",
-              }}
               onClick={handleReOrder}
             >
               {reordering ? (

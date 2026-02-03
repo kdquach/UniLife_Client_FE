@@ -12,14 +12,34 @@ export default {
         muted: "#5f6b73",
         inverse: "#ffffff",
 
-        primary: "#ff5532",
+        primary: {
+          DEFAULT: "#ff5532",
+          hover: "#ff6a4a",
+          active: "#e64a2b",
+        },
         primaryHover: "#ff6a4a",
         primaryActive: "#e64a2b",
 
-        success: "#2e7d32",
-        warning: "#ffb80e",
-        danger: "#872822",
-        info: "#1976d2",
+        success: {
+          DEFAULT: "#2e7d32",
+          light: "#4caf50",
+          dark: "#1b5e20",
+        },
+        warning: {
+          DEFAULT: "#ffb80e",
+          light: "#ffc107",
+          dark: "#f57c00",
+        },
+        danger: {
+          DEFAULT: "#872822",
+          light: "#d32f2f",
+          dark: "#5d1f1a",
+        },
+        info: {
+          DEFAULT: "#1976d2",
+          light: "#2196f3",
+          dark: "#0d47a1",
+        },
 
         border: "#d9d9d9",
         borderHover: "#c4c4c4",

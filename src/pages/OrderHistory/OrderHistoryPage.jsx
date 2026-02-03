@@ -10,12 +10,12 @@ import { useRightPanel } from "@/store/useRightPanel";
 
 // Mapping màu sắc badge trạng thái
 const STATUS_STYLES = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  confirmed: "bg-blue-100 text-blue-800 border-blue-200",
-  preparing: "bg-purple-100 text-purple-800 border-purple-200",
-  ready: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
+  pending: "bg-warning/10 text-warning",
+  confirmed: "bg-info/10 text-info",
+  preparing: "bg-primary/10 text-primary",
+  ready: "bg-info/10 text-info",
+  completed: "bg-success/10 text-success",
+  cancelled: "bg-danger/10 text-danger",
 };
 
 const STATUS_LABELS = {
@@ -84,8 +84,8 @@ export default function OrderHistoryPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl min-h-screen pb-20">
-      <h1 className="text-2xl font-bold mb-4 text-gray-800">
+    <div className="mx-auto min-h-screen pb-20" style={{ maxWidth: 'min(800px, 100%)' }}>
+      <h1 className="text-2xl font-bold mb-4 text-text">
         Lịch sử đơn hàng
       </h1>
 
@@ -114,12 +114,12 @@ export default function OrderHistoryPage() {
             <div
               key={order._id}
               onClick={() => openOrderDetail(order)}
-              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-all hover:shadow-md"
+              className="bg-surface p-4 rounded-card shadow-card cursor-pointer active:scale-[0.98] transition-all hover:shadow-lift"
             >
               {/* Card Header: Canteen Info & Status */}
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-surfaceMuted overflow-hidden shrink-0">
                     {/* [Defensive UI]: Check canteenId existence */}
                     {order.canteenId?.image ? (
                       <img
@@ -128,16 +128,16 @@ export default function OrderHistoryPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <div className="w-full h-full flex items-center justify-center text-muted">
                         <MaterialIcon name="store" size={20} />
                       </div>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 text-sm line-clamp-1">
+                    <h3 className="font-bold text-text text-sm line-clamp-1">
                       {order.canteenId?.name || "Canteen không xác định"}
                     </h3>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-muted">
                       <MaterialIcon name="receipt" size={12} />
                       <span>
                         #
@@ -148,18 +148,18 @@ export default function OrderHistoryPage() {
                 </div>
 
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${STATUS_STYLES[order.status] || "bg-gray-100 text-gray-600 border-gray-200"}`}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[order.status] || "bg-surfaceMuted text-muted"}`}
                 >
                   {STATUS_LABELS[order.status] || order.status}
                 </span>
               </div>
 
               {/* Card Body: Items Preview */}
-              <div className="py-3 border-t border-dashed border-gray-200 text-sm text-gray-600 space-y-2">
+              <div className="py-3 border-t border-dashed border-divider text-sm text-muted space-y-2">
                 {order.items.slice(0, 2).map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center">
                     <span className="flex-1 truncate pr-2">
-                      <span className="font-semibold text-gray-800 mr-2">
+                      <span className="font-semibold text-text mr-2">
                         {item.quantity}x
                       </span>
                       {item.productName}
@@ -167,7 +167,7 @@ export default function OrderHistoryPage() {
                   </div>
                 ))}
                 {order.items.length > 2 && (
-                  <p className="text-xs text-gray-400 italic pl-1">
+                  <p className="text-xs text-muted italic pl-1">
                     + {order.items.length - 2} món khác
                   </p>
                 )}
@@ -175,11 +175,11 @@ export default function OrderHistoryPage() {
 
               {/* Card Footer: Total & Date */}
               <div className="flex justify-between items-end mt-2 pt-2">
-                <span className="text-xs text-gray-400 font-medium">
+                <span className="text-xs text-muted font-medium">
                   {formatDate(order.createdAt)}
                 </span>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 mb-0.5">Tổng tiền</p>
+                  <p className="text-xs text-muted mb-0.5">Tổng tiền</p>
                   <span className="font-bold text-primary text-base">
                     {money(order.totalAmount)}
                   </span>
@@ -192,23 +192,23 @@ export default function OrderHistoryPage() {
 
       {/* Pagination Controls */}
       {!loading && orders.length > 0 && pagination.totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-8 pt-4 border-t border-gray-100">
+        <div className="flex justify-center items-center gap-4 mt-8 pt-4 border-t border-divider">
           <button
             disabled={pagination.page === 1}
             onClick={() => handlePageChange(pagination.page - 1)}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+            className="px-4 py-2 bg-surface rounded-card shadow-card text-sm font-medium hover:shadow-lift disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1"
           >
             <MaterialIcon name="chevron_left" size={18} /> Trước
           </button>
 
-          <span className="px-3 py-1 bg-gray-100 rounded-md text-sm font-semibold text-gray-700">
+          <span className="px-3 py-1 bg-primary text-inverse rounded-full text-sm font-semibold shadow-card">
             {pagination.page} / {pagination.totalPages}
           </span>
 
           <button
             disabled={pagination.page >= pagination.totalPages}
             onClick={() => handlePageChange(pagination.page + 1)}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+            className="px-4 py-2 bg-surface rounded-card shadow-card text-sm font-medium hover:shadow-lift disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1"
           >
             Sau <MaterialIcon name="chevron_right" size={18} />
           </button>

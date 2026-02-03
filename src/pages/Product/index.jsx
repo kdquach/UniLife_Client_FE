@@ -75,7 +75,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-white py-8">
-      <div className="mx-auto max-w-6xl px-4">
+      <div className="mx-auto max-w-5xl px-4">
         {/* Back Button */}
         <button
           onClick={() => navigate('/menu')}
@@ -105,10 +105,10 @@ export default function ProductDetailPage() {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative h-20 w-20 rounded-lg overflow-hidden border-2 transition ${
+                    className={`relative h-20 w-20 rounded-lg overflow-hidden transition ${
                       selectedImage === idx
-                        ? 'border-primary'
-                        : 'border-slate-200 hover:border-slate-300'
+                        ? 'ring-2 ring-primary'
+                        : 'opacity-60 hover:opacity-100'
                     }`}
                   >
                     <img
@@ -151,7 +151,7 @@ export default function ProductDetailPage() {
                       <span className="text-xl text-muted line-through">
                         {money(product.originalPrice)}
                       </span>
-                      <span className="text-sm font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="text-sm font-semibold text-warning bg-warning/10 px-2 py-1 rounded">
                         Giảm{' '}
                         {Math.round(
                           ((product.originalPrice - product.price) /
@@ -168,7 +168,7 @@ export default function ProductDetailPage() {
               <div className="pt-2">
                 {isInStock ? (
                   <>
-                    <p className="text-green-600 font-semibold flex items-center gap-2">
+                    <p className="text-success font-semibold flex items-center gap-2">
                       <MaterialIcon
                         name="check_circle"
                         className="text-[18px]"
@@ -176,13 +176,13 @@ export default function ProductDetailPage() {
                       Còn hàng
                     </p>
                     {isLowStock && (
-                      <p className="text-orange-600 text-sm mt-1">
+                      <p className="text-warning text-sm mt-1">
                         ⚠️ Chỉ còn {product.stockQuantity} sản phẩm
                       </p>
                     )}
                   </>
                 ) : product.status === 'out_of_stock' ? (
-                  <p className="text-red-600 font-semibold flex items-center gap-2">
+                  <p className="text-danger font-semibold flex items-center gap-2">
                     <MaterialIcon
                       name="remove_circle"
                       className="text-[18px]"
@@ -199,7 +199,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-3 py-4 border-y border-slate-200">
+            <div className="grid grid-cols-2 gap-3 py-4 border-y border-divider">
               {product.preparationTime && (
                 <div className="flex items-center gap-2">
                   <MaterialIcon
@@ -265,13 +265,13 @@ export default function ProductDetailPage() {
             {(product.isPopular || product.isNew) && (
               <div className="flex gap-2">
                 {product.isPopular && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1.5 text-xs font-semibold text-orange-700">
-                    <MaterialIcon name="star" className="text-[14px]" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-3 py-1.5 text-xs font-semibold text-warning">
+                    <MaterialIcon name="star" className="text-[14px]" filled />
                     Phổ biến
                   </span>
                 )}
                 {product.isNew && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-3 py-1.5 text-xs font-semibold text-info">
                     <MaterialIcon name="new_releases" className="text-[14px]" />
                     Mới
                   </span>
@@ -280,9 +280,9 @@ export default function ProductDetailPage() {
             )}
 
             {/* Quantity Selector */}
-            <div className="flex items-center gap-3 py-4 border-y border-slate-200">
+            <div className="flex items-center gap-3 py-4 border-y border-divider">
               <span className="text-sm font-medium text-text">Số lượng:</span>
-              <div className="flex items-center border border-slate-300 rounded-lg">
+              <div className="flex items-center bg-surfaceMuted rounded-lg">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={!isInStock}
@@ -320,20 +320,20 @@ export default function ProductDetailPage() {
 
         {/* Recipe Section */}
         {product.recipe && product.recipe.length > 0 && (
-          <div className="mt-12 pt-12 border-t border-slate-200">
+          <div className="mt-12 pt-12 border-t border-divider">
             <h2 className="text-2xl font-bold text-text mb-6">Thành phần</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {product.recipe.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-lg bg-slate-50 p-4 hover:bg-slate-100 transition"
+                  className="flex items-center justify-between rounded-card bg-surfaceMuted p-4 transition"
                 >
                   <div>
                     <p className="font-medium text-text">
                       {item.ingredientName || `Thành phần ${idx + 1}`}
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-primary border border-primary">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                     {item.quantity} {item.unit}
                   </span>
                 </div>

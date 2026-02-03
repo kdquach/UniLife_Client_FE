@@ -101,9 +101,9 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
   };
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white hover:shadow-md transition-shadow">
+    <div className="rounded-card bg-surface shadow-card hover:shadow-lift transition-all">
       {/* Header Section */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between">
+      <div className="px-6 py-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
           {/* Avatar */}
           {feedback.userId?.avatar ? (
@@ -113,10 +113,10 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-surfaceMuted flex items-center justify-center">
               <MaterialIcon
                 name="person"
-                className="text-[18px] text-slate-400"
+                className="text-[18px] text-muted"
               />
             </div>
           )}
@@ -139,7 +139,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
               <button
                 onClick={() => setIsEditing(true)}
                 title="Chỉnh sửa bình luận"
-                className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition"
+                className="p-2 rounded-lg text-info hover:bg-info/10 disabled:opacity-50 transition"
               >
                 <MaterialIcon name="edit" className="text-[18px]" />
               </button>
@@ -148,7 +148,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
               onClick={handleDelete}
               disabled={isDeleting}
               title="Xóa bình luận"
-              className="p-2 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50 transition"
+              className="p-2 rounded-lg text-danger hover:bg-danger/10 disabled:opacity-50 transition"
             >
               <MaterialIcon name="delete" className="text-[18px]" />
             </button>
@@ -158,7 +158,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
 
       {/* Rating Section */}
       {!isEditing && (
-        <div className="px-6 py-3 bg-gradient-to-r from-orange-50 to-transparent border-b border-slate-100">
+        <div className="px-6 py-3 bg-warning/10">
           <SimpleRating rating={feedback.rating} size="md" />
         </div>
       )}
@@ -168,7 +168,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
         <form onSubmit={handleUpdate} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-text mb-2">
-              Đánh giá sản phẩm <span className="text-red-500">*</span>
+              Đánh giá sản phẩm <span className="text-danger">*</span>
             </label>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -191,13 +191,12 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
                   className="transition"
                 >
                   <MaterialIcon
-                    name={
-                      Number(editData.rating) >= star ? 'star' : 'star_outline'
-                    }
+                    name="star"
+                    filled
                     className={`text-[32px] ${
                       Number(editData.rating) >= star
-                        ? 'text-orange-500'
-                        : 'text-slate-300 hover:text-orange-300'
+                        ? 'text-warning'
+                        : 'text-warning/25 hover:text-warning/50'
                     } transition`}
                   />
                 </button>
@@ -216,7 +215,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
               }
               placeholder="Chia sẻ ý kiến của bạn về sản phẩm này..."
               maxLength={1000}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition resize-none"
+              className="w-full rounded-card bg-surfaceMuted px-4 py-3 text-text placeholder:text-muted shadow-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition resize-none"
               rows={4}
             />
             <p className="mt-1 text-xs text-muted text-right">
@@ -225,12 +224,12 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
           </div>
 
           {updateError && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2">
+            <div className="rounded-card bg-danger/10 p-3 flex items-start gap-2 shadow-card">
               <MaterialIcon
                 name="error"
-                className="text-[20px] text-red-600 shrink-0 mt-0.5"
+                className="text-[20px] text-danger shrink-0 mt-0.5"
               />
-              <p className="text-sm text-red-600">{updateError}</p>
+              <p className="text-sm text-danger">{updateError}</p>
             </div>
           )}
 
@@ -238,7 +237,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
             <button
               type="submit"
               disabled={isUpdating}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-primaryHover disabled:bg-slate-400 font-medium transition flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-inverse hover:bg-primaryHover disabled:bg-surfaceMuted disabled:text-muted font-medium transition flex items-center justify-center gap-2"
             >
               {isUpdating ? (
                 <>
@@ -255,7 +254,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="px-6 py-2.5 rounded-lg border border-slate-200 text-text hover:bg-slate-50 font-medium transition"
+              className="px-6 py-2.5 rounded-card bg-surface shadow-card text-text hover:shadow-lift font-medium transition-all"
             >
               Hủy
             </button>
@@ -284,7 +283,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
 
       {/* Error Message */}
       {deleteError && (
-        <div className="px-6 py-3 bg-red-50 border-t border-red-200 flex items-start gap-2 text-sm text-red-600">
+        <div className="px-6 py-3 bg-danger/10 flex items-start gap-2 text-sm text-danger">
           <MaterialIcon name="error" className="text-[16px] shrink-0 mt-0.5" />
           <p>{deleteError}</p>
         </div>

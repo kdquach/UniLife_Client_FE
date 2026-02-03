@@ -83,9 +83,9 @@ export default function PickupQRCode({ orderId, pickupCode, size = 160 }) {
     circumference - (progressPercent / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-4 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100">
+    <div className="flex flex-col items-center gap-4 p-5 bg-success/5 rounded-2xl shadow-card">
       {/* Header */}
-      <div className="flex items-center gap-2 text-green-700">
+      <div className="flex items-center gap-2 text-success">
         <MaterialIcon name="qr_code_2" className="text-[24px]" />
         <span className="text-sm font-semibold">Mã nhận hàng</span>
       </div>
@@ -104,8 +104,9 @@ export default function PickupQRCode({ orderId, pickupCode, size = 160 }) {
             cy={(size + 24) / 2}
             r={40}
             fill="none"
-            stroke="#e5e7eb"
+            stroke="currentColor"
             strokeWidth="4"
+            className="text-success/20"
           />
           {/* Progress ring */}
           <circle
@@ -113,51 +114,51 @@ export default function PickupQRCode({ orderId, pickupCode, size = 160 }) {
             cy={(size + 24) / 2}
             r={40}
             fill="none"
-            stroke={timeRemaining <= 10 ? "#ef4444" : "#22c55e"}
+            stroke="currentColor"
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-1000 ease-linear"
+            className={`transition-all duration-1000 ease-linear ${timeRemaining <= 10 ? "text-danger" : "text-success"}`}
           />
         </svg>
 
         {/* QR Code */}
-        <div className="bg-white p-3 rounded-xl shadow-sm relative z-10">
+        <div className="bg-surface p-3 rounded-xl shadow-card relative z-10">
           <QRCodeSVG
             value={qrData}
             size={size}
             level="M"
             includeMargin={false}
-            bgColor="#ffffff"
-            fgColor="#1a1a1a"
+            bgColor="var(--surface)"
+            fgColor="var(--text)"
           />
         </div>
       </div>
 
       {/* Token hiển thị */}
       <div className="text-center">
-        <p className="font-mono text-2xl font-bold text-green-800 tracking-widest">
+        <p className="font-mono text-2xl font-bold text-success tracking-widest">
           {currentToken || "------"}
         </p>
-        <p className="text-xs text-green-600 mt-1">Mã xác thực</p>
+        <p className="text-xs text-success/70 mt-1">Mã xác thực</p>
       </div>
 
       {/* Countdown */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-white/70 rounded-full">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-surface/70 rounded-full">
         <MaterialIcon
           name="timer"
-          className={`text-[16px] ${timeRemaining <= 10 ? "text-red-500" : "text-green-600"}`}
+          className={`text-[16px] ${timeRemaining <= 10 ? "text-danger" : "text-success/70"}`}
         />
         <span
-          className={`text-sm font-medium ${timeRemaining <= 10 ? "text-red-500" : "text-green-700"}`}
+          className={`text-sm font-medium ${timeRemaining <= 10 ? "text-danger" : "text-success"}`}
         >
           Cập nhật sau {timeRemaining}s
         </span>
       </div>
 
       {/* Lưu ý */}
-      <p className="text-xs text-center text-green-600/80 max-w-[200px]">
+      <p className="text-xs text-center text-success/60 max-w-[200px]">
         Xuất trình mã này cho nhân viên khi nhận hàng
       </p>
     </div>

@@ -1,6 +1,6 @@
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 
-export default function RatingStars({ rating = 0, size = 'md' }) {
+export default function RatingStars({ rating = 0, size = 'md', showValue = true }) {
   const sizeClasses = {
     sm: 'text-[16px]',
     md: 'text-[20px]',
@@ -14,22 +14,25 @@ export default function RatingStars({ rating = 0, size = 'md' }) {
   return (
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => {
-        let starType = 'star_outline';
-        if (star <= fullStars) {
-          starType = 'star';
-        } else if (star === fullStars + 1 && hasHalfStar) {
-          starType = 'star_half';
-        }
+        const isFull = star <= fullStars;
+        const isHalf = star === fullStars + 1 && hasHalfStar;
+        const iconName = isHalf ? 'star_half' : 'star';
+        const iconClass = isFull
+          ? 'text-warning'
+          : isHalf
+          ? 'text-warning'
+          : 'text-warning/25';
 
         return (
           <MaterialIcon
             key={star}
-            name={starType}
-            className={`${sizeClasses[size]} text-orange-500 transition`}
+            name={iconName}
+            filled
+            className={`${sizeClasses[size]} ${iconClass} transition`}
           />
         );
       })}
-      {rating > 0 && (
+      {showValue && rating > 0 && (
         <span className="ml-1 font-semibold text-text">{ratingValue}</span>
       )}
     </div>

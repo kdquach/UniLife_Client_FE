@@ -53,7 +53,7 @@ export default function MainLayout() {
 
         <AppSidebar />
 
-        <main className="min-h-[calc(100vh-var(--header-h))] min-w-0 rounded-surface p-6 shadow-surface md:p-7">
+        <main className="min-h-[calc(100vh-var(--header-h))] min-w-0 rounded-surface p-6 md:p-7">
           <Outlet />
         </main>
       </div>

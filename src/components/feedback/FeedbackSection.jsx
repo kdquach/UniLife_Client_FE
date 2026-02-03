@@ -89,16 +89,45 @@ export default function FeedbackSection({ productId }) {
   }, [showForm, isAuthenticated, fetchUserCompletedOrders]);
 
   // Calculate average rating from distribution
+  const normalizedDistribution = useMemo(() => {
+    const dist = ratingStats?.distribution;
+    if (!dist) return null;
+
+    // API may return object { "5": 10, ... } or array [{ rating: 5, count: 10 }, ...]
+    if (Array.isArray(dist)) {
+      const map = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const item of dist) {
+        const r = Number(item?.rating);
+        const c = Number(item?.count ?? item?.total ?? 0);
+        if (r >= 1 && r <= 5) map[r] = c;
+      }
+      return map;
+    }
+
+    if (typeof dist === 'object') {
+      return dist;
+    }
+
+    return null;
+  }, [ratingStats?.distribution]);
+
   const avgRating = useMemo(() => {
     if (!ratingStats) return 0;
-    const { distribution, totalReviews } = ratingStats;
-    if (!distribution || totalReviews === 0) return 0;
-    let sum = 0;
-    for (const [rating, count] of Object.entries(distribution)) {
-      sum += parseInt(rating) * count;
+
+    const directAvg = Number(ratingStats?.avgRating);
+    if (Number.isFinite(directAvg) && directAvg > 0) {
+      return Number(directAvg.toFixed(1));
     }
-    return (sum / totalReviews).toFixed(1);
-  }, [ratingStats]);
+
+    const totalReviews = Number(ratingStats?.totalReviews ?? 0);
+    if (!normalizedDistribution || totalReviews <= 0) return 0;
+
+    let sum = 0;
+    for (const [rating, count] of Object.entries(normalizedDistribution)) {
+      sum += Number(rating) * Number(count);
+    }
+    return Number((sum / totalReviews).toFixed(1));
+  }, [ratingStats, normalizedDistribution]);
 
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
@@ -148,7 +177,7 @@ export default function FeedbackSection({ productId }) {
   };
 
   return (
-    <div className="mt-12 pt-12 border-t border-slate-200">
+    <div className="mt-12 rounded-card p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -161,7 +190,7 @@ export default function FeedbackSection({ productId }) {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-primaryHover transition font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-card bg-primary text-inverse hover:bg-primaryHover transition font-medium shadow-card"
         >
           <MaterialIcon name="rate_review" className="text-[18px]" />
           Viết bình luận
@@ -171,50 +200,33 @@ export default function FeedbackSection({ productId }) {
       {/* Rating Summary */}
       {ratingStats && ratingStats.totalReviews > 0 && (
         <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Average Rating Card */}
 
-          {/* <div className="rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50 p-4 lg:p-6 flex items-center justify-center">
-            <div className="flex flex-col items-center justify-center text-center">
-              <p className="text-3xl font-semibold text-orange-700 mb-3">
-                Đánh giá trung bình
+          <div className="px-6 py-8 flex items-center justify-center border-r-4 border-divider">
+            <div className="flex flex-col items-center text-center">
+
+              <p className="mt-3 text-sm font-semibold text-muted">
+                <span className='text-4xl text-black'>{avgRating}</span> trên 5
               </p>
 
-              <div className="text-2xl scale-125 mt-2">
-                <SimpleRating rating={parseFloat(avgRating)} />
+              <div className="mt-2">
+                <RatingStars rating={avgRating} size="lg" showValue={false} />
               </div>
 
-              <p className="text-2xl font-medium text-orange-600 mt-4">
-                Dựa trên {ratingStats.totalReviews} đánh giá
-              </p>
-            </div>
-          </div> */}
-          <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50 px-6 py-8 flex items-center justify-center">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <p className="text-2xl lg:text-3xl font-semibold text-orange-700">
-                Đánh giá trung bình
-              </p>
-
-              {/* Rating */}
-              <div className="scale-150">
-                <SimpleRating rating={parseFloat(avgRating)} />
-              </div>
-
-              <p className="text-lg lg:text-xl font-medium text-orange-600">
+              <p className="mt-3 text-sm text-muted">
                 Dựa trên {ratingStats.totalReviews} đánh giá
               </p>
             </div>
           </div>
 
           {/* Rating Distribution */}
-          {ratingStats.distribution && (
-            <div className="md:col-span-2 lg:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-6">
-              <h3 className="font-semibold text-text mb-4">Phân bố đánh giá</h3>
+          {normalizedDistribution && (
+            <div className="md:col-span-2 lg:col-span-2 p-6">
               <div className="space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {
-                  const count = ratingStats.distribution[star] || 0;
+                  const count = Number(normalizedDistribution?.[star] ?? 0);
                   const percentage =
-                    ratingStats.totalReviews > 0
-                      ? ((count / ratingStats.totalReviews) * 100).toFixed(0)
+                    Number(ratingStats?.totalReviews ?? 0) > 0
+                      ? (count / Number(ratingStats.totalReviews)) * 100
                       : 0;
                   return (
                     <div key={star} className="flex items-center gap-3">
@@ -222,17 +234,18 @@ export default function FeedbackSection({ productId }) {
                         {star}
                         <MaterialIcon
                           name="star"
-                          className="text-[14px] text-orange-500"
+                          filled
+                          className="text-[14px] text-warning"
                         />
                       </span>
-                      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-orange-500 transition-all"
+                          className="h-full bg-warning transition-all"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
                       <span className="text-sm text-muted whitespace-nowrap">
-                        {count} ({percentage}%)
+                        {count}
                       </span>
                     </div>
                   );
@@ -247,12 +260,12 @@ export default function FeedbackSection({ productId }) {
       {showForm && (
         <form
           onSubmit={handleSubmitFeedback}
-          className="mb-8 rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6"
+          className="mb-8 rounded-card bg-surfaceMuted p-6 shadow-card"
         >
           <h3 className="text-lg font-semibold text-text mb-6 flex items-center gap-2">
             <MaterialIcon
               name="rate_review"
-              className="text-[24px] text-orange-500"
+              className="text-[24px] text-warning"
             />
             {isAuthenticated
               ? 'Chia sẻ đánh giá của bạn'
@@ -264,7 +277,7 @@ export default function FeedbackSection({ productId }) {
             {isAuthenticated && (
               <div>
                 <label className="block text-sm font-medium text-text mb-2">
-                  Chọn đơn hàng <span className="text-red-500">*</span>
+                  Chọn đơn hàng <span className="text-danger">*</span>
                 </label>
                 {ordersLoading ? (
                   <div className="flex items-center gap-2 text-muted text-sm">
@@ -277,7 +290,7 @@ export default function FeedbackSection({ productId }) {
                     onChange={(e) =>
                       setFormData({ ...formData, orderId: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                    className="w-full rounded-card bg-surface px-4 py-2.5 text-text shadow-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
                   >
                     <option value="">-- Chọn đơn hàng --</option>
                     {userOrders.map((order) => (
@@ -288,7 +301,7 @@ export default function FeedbackSection({ productId }) {
                     ))}
                   </select>
                 ) : (
-                  <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 flex items-start gap-2 text-sm text-yellow-700">
+                  <div className="rounded-card bg-warning/10 p-3 flex items-start gap-2 text-sm text-warning shadow-card">
                     <MaterialIcon
                       name="info"
                       className="text-[16px] shrink-0 mt-0.5"
@@ -305,9 +318,9 @@ export default function FeedbackSection({ productId }) {
             {/* Rating Input */}
             <div>
               <label className="block text-sm font-medium text-text mb-3">
-                Đánh giá sản phẩm <span className="text-red-500">*</span>
+                Đánh giá sản phẩm <span className="text-danger">*</span>
               </label>
-              <div className="flex items-center gap-3 bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center gap-3 bg-surface p-4 rounded-card shadow-card">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -316,17 +329,18 @@ export default function FeedbackSection({ productId }) {
                     className="transition transform hover:scale-110"
                   >
                     <MaterialIcon
-                      name={formData.rating >= star ? 'star' : 'star_outline'}
+                      name="star"
+                      filled
                       className={`text-[32px] ${
                         formData.rating >= star
-                          ? 'text-orange-500'
-                          : 'text-slate-300 hover:text-orange-300'
+                          ? 'text-warning'
+                          : 'text-warning/25 hover:text-warning/50'
                       } transition`}
                     />
                   </button>
                 ))}
                 {formData.rating > 0 && (
-                  <span className="ml-2 text-sm font-medium text-slate-500">
+                  <span className="ml-2 text-sm font-medium text-muted">
                     {formData.rating} sao
                   </span>
                 )}
@@ -345,7 +359,7 @@ export default function FeedbackSection({ productId }) {
                 }
                 placeholder="Chia sẻ trải nghiệm của bạn với sản phẩm này..."
                 maxLength={1000}
-                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-text placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition resize-none"
+                className="w-full rounded-card bg-surface px-4 py-3 text-text placeholder:text-muted shadow-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition resize-none"
                 rows={4}
               />
               <p className="mt-2 text-xs text-muted text-right">
@@ -355,12 +369,12 @@ export default function FeedbackSection({ productId }) {
 
             {/* Error Message */}
             {submitError && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+              <div className="rounded-card bg-danger/10 p-4 flex items-start gap-3 shadow-card">
                 <MaterialIcon
                   name="error"
-                  className="text-[20px] text-red-600 shrink-0 mt-0.5"
+                  className="text-[20px] text-danger shrink-0 mt-0.5"
                 />
-                <p className="text-sm text-red-600">{submitError}</p>
+                <p className="text-sm text-danger">{submitError}</p>
               </div>
             )}
 
@@ -369,7 +383,7 @@ export default function FeedbackSection({ productId }) {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.orderId}
-                className="flex-1 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primaryHover disabled:bg-slate-400 font-medium transition flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 rounded-lg bg-primary text-inverse hover:bg-primaryHover disabled:bg-surfaceMuted disabled:text-muted font-medium transition flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -389,7 +403,7 @@ export default function FeedbackSection({ productId }) {
                   setShowForm(false);
                   setSubmitError(null);
                 }}
-                className="px-6 py-3 rounded-lg border border-slate-200 text-text hover:bg-slate-50 font-medium transition"
+                className="px-6 py-3 rounded-card bg-surface shadow-card text-text hover:shadow-lift font-medium transition-all"
               >
                 Hủy
               </button>
@@ -407,12 +421,12 @@ export default function FeedbackSection({ productId }) {
 
       {/* Error State */}
       {error && !loading && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3 mb-6">
+        <div className="rounded-card bg-danger/10 p-4 flex items-start gap-3 mb-6 shadow-card">
           <MaterialIcon
             name="error"
-            className="text-[20px] text-red-600 shrink-0 mt-0.5"
+            className="text-[20px] text-danger shrink-0 mt-0.5"
           />
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
         </div>
       )}
 
@@ -438,10 +452,10 @@ export default function FeedbackSection({ productId }) {
 
       {/* Empty State */}
       {!loading && feedbacks.length === 0 && (
-        <div className="rounded-lg bg-slate-50 border border-slate-200 p-12 text-center">
+        <div className="rounded-card bg-surfaceMuted p-12 text-center shadow-card">
           <MaterialIcon
             name="rate_review"
-            className="text-[48px] text-slate-300 mb-4 inline-block"
+            className="text-[48px] text-muted/40 mb-4 inline-block"
           />
           <p className="text-base text-muted">
             Chưa có bình luận nào. Hãy là người đầu tiên bình luận về sản phẩm
@@ -456,7 +470,7 @@ export default function FeedbackSection({ productId }) {
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-text hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-3 py-2 rounded-card bg-surface shadow-card text-text hover:shadow-lift disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <MaterialIcon name="chevron_left" className="text-[20px]" />
           </button>
@@ -466,10 +480,10 @@ export default function FeedbackSection({ productId }) {
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`px-3 py-2 rounded-lg font-medium transition ${
+                className={`px-3 py-2 rounded-card font-medium transition-all ${
                   currentPage === page
-                    ? 'bg-primary text-white'
-                    : 'border border-slate-200 text-text hover:bg-slate-50'
+                    ? 'bg-primary text-inverse shadow-lift'
+                    : 'bg-surface shadow-card text-text hover:shadow-lift'
                 }`}
               >
                 {page}
@@ -482,7 +496,7 @@ export default function FeedbackSection({ productId }) {
               setCurrentPage(Math.min(pagination.pages, currentPage + 1))
             }
             disabled={currentPage === pagination.pages}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-text hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-3 py-2 rounded-card bg-surface shadow-card text-text hover:shadow-lift disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <MaterialIcon name="chevron_right" className="text-[20px]" />
           </button>

@@ -1,11 +1,52 @@
 import { Dropdown } from "antd";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import imageNotFound from "@/assets/images/image-not-found.png";
-import { logout as logoutService } from "@/services/auth.service";
+import { logout as logoutService, getCurrentUser } from "@/services/auth.service";
 
 export default function ProfileCluster({ isAuthenticated, user }) {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(user);
+
+  // Update when prop changes
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user?.avatar, user?.fullName, user?.name, user?._id]);
+
+  // Listen for avatar updates from Profile page
+  useEffect(() => {
+    const handleUserAvatarUpdate = (event) => {
+      if (event.detail) {
+        setCurrentUser(event.detail);
+      }
+    };
+
+    window.addEventListener('userAvatarUpdated', handleUserAvatarUpdate);
+    return () => window.removeEventListener('userAvatarUpdated', handleUserAvatarUpdate);
+  }, []);
+
+  // Fallback: Refresh user data from localStorage occasionally
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const refreshUser = () => {
+      try {
+        const freshUser = getCurrentUser();
+        if (freshUser && freshUser.avatar !== currentUser?.avatar) {
+          setCurrentUser(freshUser);
+        }
+      } catch (err) {
+        console.error('Failed to refresh user:', err);
+      }
+    };
+
+    // Check every 3 seconds for avatar updates (fallback)
+    const interval = setInterval(refreshUser, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, currentUser?.avatar]);
 
   const handleLogout = async () => {
     try {
@@ -92,9 +133,9 @@ export default function ProfileCluster({ isAuthenticated, user }) {
       >
         {/* Avatar */}
         <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-surfaceMuted">
-          {user?.avatar ? (
+          {currentUser?.avatar ? (
             <img
-              src={user.avatar}
+              src={currentUser.avatar}
               alt="avatar"
               className="h-full w-full object-cover"
             />
@@ -105,7 +146,7 @@ export default function ProfileCluster({ isAuthenticated, user }) {
 
         {/* Username */}
         <span className="hidden sm:block text-sm font-semibold">
-          {user?.fullName ?? user?.name ?? "Unilife User"}
+          {currentUser?.fullName ?? currentUser?.name ?? "Unilife User"}
         </span>
       </button>
     </Dropdown>

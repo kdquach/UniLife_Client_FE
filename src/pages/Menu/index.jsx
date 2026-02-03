@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Select } from 'antd';
+import { Dropdown } from 'antd';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
@@ -10,6 +10,7 @@ import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
 import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
+import MaterialIcon from '@/components/MaterialIcon.jsx';
 import ResetLink from '../../components/menu/ResetLink';
 
 function Chip({ active, children, onClick }) {
@@ -21,7 +22,7 @@ function Chip({ active, children, onClick }) {
         'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200',
         active
           ? 'bg-primary text-inverse shadow-lift'
-          : 'bg-white/80 text-muted shadow-card hover:bg-white hover:shadow-lift'
+          : 'bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift'
       )}
     >
       {children}
@@ -49,7 +50,6 @@ export default function MenuPage() {
   const panel = useRightPanel();
   const categoryRef = useRef(null);
   const isOverflow = useHorizontalOverflow(categoryRef);
-  const { clearCart } = useCartStore();
 
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
   const { selectedCanteen } = useCampusStore();
@@ -64,12 +64,6 @@ export default function MenuPage() {
   useEffect(() => {
     setActiveCategoryId(null);
     setSortOption('');
-  }, [selectedCanteen?.id]);
-
-  // Clear cart khi đổi canteen
-  useEffect(() => {
-    if (selectedCanteen?.id) {
-    }
   }, [selectedCanteen?.id]);
 
   useEffect(() => {
@@ -147,12 +141,12 @@ export default function MenuPage() {
         )}
 
         {error && !loading && (
-          <div className="rounded-lg bg-red-50 p-4 text-red-700">
+          <div className="rounded-lg bg-danger/10 p-4 text-danger">
             <p className="font-medium">Failed to load menu</p>
             <p className="text-sm">{error}</p>
             <button
               onClick={() => fetchAll({ limit: 100, status: 'available' })}
-              className="mt-3 rounded bg-red-700 px-4 py-2 text-white hover:bg-red-800"
+              className="mt-3 rounded bg-danger px-4 py-2 text-inverse hover:bg-danger/90"
             >
               Retry
             </button>
@@ -167,7 +161,7 @@ export default function MenuPage() {
                 {isOverflow && (
                   <button
                     onClick={() => categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
-                    className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                    className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
                   >
                     ‹
                   </button>
@@ -188,7 +182,7 @@ export default function MenuPage() {
                 {isOverflow && (
                   <button
                     onClick={() => categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
-                    className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-card p-1 transition hover:shadow-lift"
+                    className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
                   >
                     ›
                   </button>
@@ -205,19 +199,32 @@ export default function MenuPage() {
                   }}
                 />
 
-                <Select
-                  value={sortOption || ''}
-                  onChange={setSortOption}
-                  size="middle"
-                  className="min-w-40"
-                  options={[
-                    { value: '', label: 'Mặc định' },
-                    { value: 'name-asc', label: 'Tên A → Z' },
-                    { value: 'name-desc', label: 'Tên Z → A' },
-                    { value: 'price-desc', label: 'Giá cao → thấp' },
-                    { value: 'price-asc', label: 'Giá thấp → cao' },
-                  ]}
-                />
+                <Dropdown
+                  trigger={['click']}
+                  menu={{
+                    items: [
+                      { key: '', label: 'Mặc định' },
+                      { key: 'name-asc', label: 'Tên A → Z' },
+                      { key: 'name-desc', label: 'Tên Z → A' },
+                      { key: 'price-desc', label: 'Giá cao → thấp' },
+                      { key: 'price-asc', label: 'Giá thấp → cao' },
+                    ],
+                    onClick: ({ key }) => setSortOption(key),
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-card bg-surface px-4 py-2 shadow-card transition-all hover:shadow-lift min-w-40"
+                  >
+                    <span className="text-sm font-medium text-text flex-1 text-left">
+                      {sortOption === 'name-asc' ? 'Tên A → Z' : 
+                       sortOption === 'name-desc' ? 'Tên Z → A' :
+                       sortOption === 'price-desc' ? 'Giá cao → thấp' :
+                       sortOption === 'price-asc' ? 'Giá thấp → cao' : 'Mặc định'}
+                    </span>
+                    <MaterialIcon name="expand_more" className="text-[18px] text-muted" />
+                  </button>
+                </Dropdown>
               </div>
             </div>
 
