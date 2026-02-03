@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
 * {
   text-decoration: none !important;
@@ -28,6 +29,10 @@
 
 .bg-surfaceMuted {
   background-color: var(--surface-muted) !important;
+}
+
+.bg-muted {
+  background-color: var(--border) !important;
 }
 
 .text-primary {

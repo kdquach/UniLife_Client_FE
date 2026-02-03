@@ -23,12 +23,13 @@ export default function SimpleRating({ rating = 0, size = 'md' }) {
 
   return (
     <div
-      className={`${sizeClasses[size]} font-semibold text-orange-600 flex items-center gap-1.5`}
+      className={`${sizeClasses[size]} font-semibold text-warning flex items-center gap-1.5`}
     >
       <span className="font-bold">{displayValue}</span>
       <MaterialIcon
         name="star"
-        className={`${iconSizeClasses[size]} text-orange-500`}
+        filled
+        className={`${iconSizeClasses[size]} text-warning`}
       />
     </div>
   );

@@ -2,24 +2,24 @@
 
 .ant-select .ant-select-selector {
 	background: var(--surface) !important;
-	border: 1px solid var(--border) !important;
-	box-shadow: none !important;
-	border-radius: var(--radius-input) !important;
-	padding: 0 10px !important;
+	border: none !important;
+	box-shadow: var(--shadow-card) !important;
+	border-radius: var(--radius-card) !important;
+	padding: 0 12px !important;
+	transition: all 0.2s ease !important;
 }
 
 .ant-select:hover .ant-select-selector {
-	border-color: var(--border-hover) !important;
+	box-shadow: var(--shadow-lift) !important;
 }
 
 .ant-select-focused .ant-select-selector {
-	border-color: var(--primary) !important;
-	box-shadow: 0 0 0 4px rgba(255, 85, 50, 0.18) !important;
+	box-shadow: var(--shadow-lift), 0 0 0 4px rgba(255, 85, 50, 0.18) !important;
 }
 
 .ant-dropdown .ant-dropdown-menu {
 	background: var(--surface) !important;
-	border: 1px solid var(--border) !important;
+	border: none !important;
 	border-radius: var(--radius-card) !important;
 	box-shadow: var(--shadow-panel) !important;
 	padding: 8px !important;

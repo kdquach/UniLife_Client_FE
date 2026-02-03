@@ -103,10 +103,10 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
                     setActiveCanteen(null);
                   }}
                   className={clsx(
-                    "rounded-full border px-4 py-1.5 text-sm",
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200",
                     tempCampus === c.key
-                      ? "bg-primary text-inverse border-primary"
-                      : "bg-white border-slate-200"
+                      ? "bg-primary text-inverse shadow-lift"
+                      : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift"
                   )}
                 >
                   {c.name}
@@ -119,7 +119,7 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
             <h4 className="font-semibold">Chọn Canteen</h4>
 
             {loading && <p className="text-sm text-muted">Đang tải...</p>}
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
             <div className="mt-2 flex flex-wrap gap-2">
               {canteens.map((c) => (
@@ -131,17 +131,17 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
                     setActiveCanteen(c);
                   }}
                   className={clsx(
-                    "rounded-full border px-4 py-1.5 text-sm flex items-center gap-2",
+                    "rounded-full px-4 py-1.5 text-sm flex items-center gap-2 font-medium transition-all duration-200",
                     tempCanteen === c._id
-                      ? "bg-primary text-inverse border-primary"
-                      : "bg-white border-slate-200",
+                      ? "bg-primary text-inverse shadow-lift"
+                      : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift",
                     c.status !== "active" && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <span
                     className={clsx(
                       "h-2 w-2 rounded-full",
-                      c.status === "active" ? "bg-green-500" : "bg-blue-500"
+                      c.status === "active" ? "bg-success" : "bg-info"
                     )}
                   />
                   {c.name}
@@ -151,7 +151,7 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
           </div>
 
           {activeCanteen && (
-            <div className="rounded border bg-slate-50 p-3">
+            <div className="rounded-card bg-surfaceMuted p-3 shadow-card">
               <div className="font-semibold">{activeCanteen.name}</div>
               <div className="text-sm text-muted">
                 Trạng thái:{" "}

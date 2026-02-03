@@ -60,6 +60,10 @@ export default function ProfilePage() {
     fullName: "",
     phone: "",
   });
+  const [errors, setErrors] = useState({
+    fullName: "",
+    phone: "",
+  });
 
   // State doi mat khau
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -117,8 +121,41 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Vui lòng chọn một file hình ảnh");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Kích thước file không được vượt quá 5MB");
+      e.target.value = "";
+      return;
+    }
+
     try {
-      await uploadAvatar(file);
+      const updatedUser = await uploadAvatar(file);
+      
+      // Update localStorage with fresh user data to trigger ProfileCluster update
+      if (updatedUser) {
+        try {
+          const currentAuth = localStorage.getItem('auth');
+          if (currentAuth) {
+            const authData = JSON.parse(currentAuth);
+            authData.user = updatedUser;
+            localStorage.setItem('auth', JSON.stringify(authData));
+            
+            // Dispatch custom event to notify ProfileCluster
+            window.dispatchEvent(new CustomEvent('userAvatarUpdated', { detail: updatedUser }));
+          }
+        } catch (err) {
+          console.error('Failed to update auth storage:', err);
+        }
+      }
+      
       toast.success("Cập nhật ảnh đại diện thành công");
     } catch (err) {
       toast.error("Cập nhật ảnh đại diện thất bại", {
@@ -129,14 +166,54 @@ export default function ProfilePage() {
     }
   };
 
+  const validatePersonalInfo = () => {
+    const newErrors = {};
+
+    if (!draft.fullName?.trim()) {
+      newErrors.fullName = "Vui lòng nhập họ và tên";
+    } else if (draft.fullName.trim().length < 2) {
+      newErrors.fullName = "Họ và tên phải có ít nhất 2 ký tự";
+    } else if (draft.fullName.trim().length > 100) {
+      newErrors.fullName = "Họ và tên không được vượt quá 100 ký tự";
+    }
+
+    if (!draft.phone?.trim()) {
+      newErrors.phone = "Vui lòng nhập số điện thoại";
+    } else {
+      const phoneRegex = /^0[0-9]{9,10}$/;
+      if (!phoneRegex.test(draft.phone.trim())) {
+        newErrors.phone = "Số điện thoại không hợp lệ (10-11 chữ số, bắt đầu từ 0)";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const savePersonalInfo = async () => {
+    if (!validatePersonalInfo()) {
+      return;
+    }
+
     try {
       await updateMe(draft);
       toast.success("Đã lưu thông tin cá nhân");
       setEditInfo(false);
+      setErrors({ fullName: "", phone: "" });
     } catch {
       toast.error("Cập nhật thất bại");
     }
+  };
+
+  // Clear error on input change
+  const handleFullNameChange = (e) => {
+    setDraft((p) => ({ ...p, fullName: e.target.value }));
+    setErrors((p) => ({ ...p, fullName: "" }));
+  };
+
+  const handlePhoneChange = (e) => {
+    setDraft((p) => ({ ...p, phone: e.target.value }));
+    setErrors((p) => ({ ...p, phone: "" }));
   };
 
   // Xu ly doi mat khau
@@ -284,16 +361,14 @@ export default function ProfilePage() {
                 <Input
                   label="Họ và tên"
                   value={draft.fullName}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, fullName: e.target.value }))
-                  }
+                  onChange={handleFullNameChange}
+                  error={errors.fullName}
                 />
                 <Input
                   label="Số điện thoại"
                   value={draft.phone}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, phone: e.target.value }))
-                  }
+                  onChange={handlePhoneChange}
+                  error={errors.phone}
                 />
 
                 <div className="md:col-span-2 flex gap-3 pt-2">
