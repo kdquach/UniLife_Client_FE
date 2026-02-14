@@ -25,6 +25,7 @@ export default function FeedbackSection({ productId }) {
   const [showForm, setShowForm] = useState(false);
   const [userOrders, setUserOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [existingFeedbacks, setExistingFeedbacks] = useState([]);
   const [formData, setFormData] = useState({
     rating: 5,
     comment: '',
@@ -51,42 +52,90 @@ export default function FeedbackSection({ productId }) {
     setOrdersLoading(true);
     try {
       const { api } = await import('@/services/axios.config.js');
-      const response = await api.get('/orders/my-orders', {
-        params: { status: 'completed' },
-      });
+      const [ordersResponse, feedbacksResponse] = await Promise.all([
+        api.get('/orders/my-orders', {
+          params: { status: 'completed' },
+        }),
+        // Lấy tất cả feedbacks của user hiện tại cho sản phẩm này
+        api.get('/feedbacks/my-feedbacks', {
+          params: { productId },
+        }),
+      ]);
 
-      const completedOrders = Array.isArray(response.data.data)
-        ? response.data.data
-        : response.data.data?.orders || [];
+      console.log('📦 Orders Response:', ordersResponse.data);
+      console.log('💬 Feedbacks Response:', feedbacksResponse.data);
 
-      // Filter orders that contain the current product
-      const ordersWithProduct = completedOrders.filter((order) =>
-        order.items?.some(
+      // Parse orders response: { status: 'success', data: { results: [...] } }
+      const completedOrders = ordersResponse.data?.data?.results || [];
+
+      // Parse feedbacks response: { success: true, data: [...] }
+      const feedbacks = feedbacksResponse.data?.data || [];
+
+      console.log('✅ Completed Orders:', completedOrders.length);
+      console.log('✅ Feedbacks:', feedbacks.length);
+
+      const feedbackOrderIds = new Set(
+        feedbacks.map((fb) => fb.orderId?._id || fb.orderId)
+      );
+
+      // Lưu existing feedbacks để check sau
+      setExistingFeedbacks(feedbacks);
+
+      // Filter orders: có sản phẩm này VÀ chưa feedback
+      const ordersWithProduct = completedOrders.filter((order) => {
+        const hasProduct = order.items?.some(
           (item) =>
             item.productId?._id === productId || item.productId === productId
-        )
+        );
+        const notFeedbackYet = !feedbackOrderIds.has(order._id);
+
+        console.log(`🔍 Order ${order.orderNumber}:`, {
+          hasProduct,
+          notFeedbackYet,
+          included: hasProduct && notFeedbackYet,
+        });
+
+        return hasProduct && notFeedbackYet;
+      });
+
+      console.log(
+        '✅ Orders with product (not feedbacked):',
+        ordersWithProduct.length
       );
 
       setUserOrders(ordersWithProduct);
 
       // Auto-select first order if only one available
-      if (ordersWithProduct.length === 1 && !formData.orderId) {
+      if (ordersWithProduct.length === 1) {
         setFormData((prev) => ({ ...prev, orderId: ordersWithProduct[0]._id }));
+      } else if (ordersWithProduct.length === 0) {
+        // Nếu không còn order nào để feedback, clear orderId
+        setFormData((prev) => ({ ...prev, orderId: null }));
       }
     } catch (err) {
-      console.error('Error fetching orders:', err);
+      console.error('❌ Error fetching orders:', err);
+      console.error('❌ Error details:', err.response?.data || err.message);
       setUserOrders([]);
+      setExistingFeedbacks([]);
     } finally {
       setOrdersLoading(false);
     }
-  }, [productId, formData.orderId]);
+  }, [productId]);
 
   // Fetch user's completed orders when form is shown
   useEffect(() => {
     if (showForm && isAuthenticated) {
+      // Luôn refetch để đảm bảo có data mới nhất (có thể đã feedback từ Order History)
       fetchUserCompletedOrders();
     }
   }, [showForm, isAuthenticated, fetchUserCompletedOrders]);
+
+  // Cleanup: Reset orders khi productId thay đổi để tránh hiển thị data cũ
+  useEffect(() => {
+    setUserOrders([]);
+    setExistingFeedbacks([]);
+    setFormData({ rating: 5, comment: '', orderId: null });
+  }, [productId]);
 
   // Calculate average rating from distribution
   const normalizedDistribution = useMemo(() => {
@@ -161,10 +210,12 @@ export default function FeedbackSection({ productId }) {
       setFormData({ rating: 5, comment: '', orderId: null });
       setShowForm(false);
 
-      // Reset pagination and re-fetch - this will trigger the useEffect to refetch
+      // Reset pagination and re-fetch feedbacks list
       setCurrentPage(1);
-      // Also manually refetch stats since it's not dependent on currentPage
+      // Refetch stats
       await fetchProductRatingStats(productId);
+      // QUAN TRỌNG: Refetch orders để cập nhật dropdown (loại bỏ order vừa feedback)
+      await fetchUserCompletedOrders();
     } catch (err) {
       const message =
         err.response?.data?.message ||
@@ -200,12 +251,10 @@ export default function FeedbackSection({ productId }) {
       {/* Rating Summary */}
       {ratingStats && ratingStats.totalReviews > 0 && (
         <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
           <div className="px-6 py-8 flex items-center justify-center border-r-4 border-divider">
             <div className="flex flex-col items-center text-center">
-
               <p className="mt-3 text-sm font-semibold text-muted">
-                <span className='text-4xl text-black'>{avgRating}</span> trên 5
+                <span className="text-4xl text-black">{avgRating}</span> trên 5
               </p>
 
               <div className="mt-2">
@@ -288,7 +337,10 @@ export default function FeedbackSection({ productId }) {
                   <select
                     value={formData.orderId || ''}
                     onChange={(e) =>
-                      setFormData({ ...formData, orderId: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        orderId: e.target.value,
+                      }))
                     }
                     className="w-full rounded-card bg-surface px-4 py-2.5 text-text shadow-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
                   >
@@ -307,8 +359,9 @@ export default function FeedbackSection({ productId }) {
                       className="text-[16px] shrink-0 mt-0.5"
                     />
                     <p>
-                      Bạn chỉ có thể đánh giá sản phẩm này sau khi có đơn hàng
-                      đã hoàn thành chứa sản phẩm này.
+                      {existingFeedbacks.length > 0
+                        ? 'Bạn đã đánh giá sản phẩm này trong tất cả các đơn hàng có sản phẩm này rồi.'
+                        : 'Bạn chỉ có thể đánh giá sản phẩm này sau khi có đơn hàng đã hoàn thành chứa sản phẩm này.'}
                     </p>
                   </div>
                 )}
@@ -325,7 +378,9 @@ export default function FeedbackSection({ productId }) {
                   <button
                     key={star}
                     type="button"
-                    onClick={() => setFormData({ ...formData, rating: star })}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, rating: star }))
+                    }
                     className="transition transform hover:scale-110"
                   >
                     <MaterialIcon
@@ -355,7 +410,7 @@ export default function FeedbackSection({ productId }) {
               <textarea
                 value={formData.comment}
                 onChange={(e) =>
-                  setFormData({ ...formData, comment: e.target.value })
+                  setFormData((prev) => ({ ...prev, comment: e.target.value }))
                 }
                 placeholder="Chia sẻ trải nghiệm của bạn với sản phẩm này..."
                 maxLength={1000}
