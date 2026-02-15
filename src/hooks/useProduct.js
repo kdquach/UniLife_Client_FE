@@ -3,6 +3,7 @@ import {
   getAllProducts,
   getProductsByCanteen,
   getProductById,
+  getProductInventoryCheck,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -20,6 +21,9 @@ export function useProduct() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState(null);
+  const [inventoryCheck, setInventoryCheck] = useState(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState(null);
 
   // Fetch all products
   const fetchAll = useCallback(async (options = {}) => {
@@ -89,6 +93,28 @@ export function useProduct() {
       throw err;
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Kiem tra ton kho theo so luong
+  const fetchInventoryCheck = useCallback(async (id, quantity = 1) => {
+    setInventoryLoading(true);
+    setInventoryError(null);
+
+    try {
+      const result = await getProductInventoryCheck(id, quantity);
+      const inventory = result.data?.inventory || result.data;
+      setInventoryCheck(inventory);
+      return inventory;
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to fetch inventory check';
+      setInventoryError(errorMessage);
+      throw err;
+    } finally {
+      setInventoryLoading(false);
     }
   }, []);
 
@@ -222,6 +248,8 @@ export function useProduct() {
     setProduct(null);
     setError(null);
     setPagination(null);
+    setInventoryCheck(null);
+    setInventoryError(null);
   }, []);
 
   return {
@@ -230,9 +258,13 @@ export function useProduct() {
     loading,
     error,
     pagination,
+    inventoryCheck,
+    inventoryLoading,
+    inventoryError,
     fetchAll,
     fetchByCanteen,
     fetchById,
+    fetchInventoryCheck,
     create,
     update,
     remove,
