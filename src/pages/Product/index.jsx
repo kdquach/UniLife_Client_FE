@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct.js';
 import { useCartStore } from '@/store/cart.store.js';
 import { money } from '@/utils/currency.js';
+import { PRODUCT_INVENTORY_MESSAGES } from '@/constants/product.constant.js';
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 import Loader from '@/components/Loader.jsx';
 import FeedbackSection from '@/components/feedback/FeedbackSection.jsx';
@@ -11,7 +12,14 @@ import imageNotFound from '@/assets/images/image-not-found.png';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { product, loading, error, fetchById } = useProduct();
+  const {
+    product,
+    loading,
+    error,
+    fetchById,
+    fetchInventoryCheck,
+    inventoryCheck,
+  } = useProduct();
   const cart = useCartStore();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -23,6 +31,18 @@ export default function ProductDetailPage() {
       });
     }
   }, [id, fetchById]);
+
+  const hasRecipe = Array.isArray(product?.recipe) && product.recipe.length > 0;
+
+  useEffect(() => {
+    if (!product?._id || !hasRecipe || product.status !== 'available') {
+      return;
+    }
+
+    fetchInventoryCheck(product._id, quantity).catch((err) => {
+      console.error('Failed to fetch inventory check:', err);
+    });
+  }, [product?._id, product?.status, hasRecipe, quantity, fetchInventoryCheck]);
 
   if (loading) {
     return (
@@ -61,17 +81,46 @@ export default function ProductDetailPage() {
 
   const currentImage = images[selectedImage] || imageNotFound;
 
+  const isInStock = hasRecipe
+    ? product.status === 'available'
+    : product.status === 'available' && product.stockQuantity > 0;
+  const isLowStock =
+    !hasRecipe &&
+    product.stockQuantity !== undefined &&
+    product.stockQuantity > 0 &&
+    product.stockQuantity <= (product.lowStockThreshold || 10);
+  const maxServings = hasRecipe ? inventoryCheck?.maxServings : null;
+  const isQuantityExceeded =
+    hasRecipe && maxServings !== null && quantity > maxServings;
+  const isIncreaseDisabled = !isInStock;
+  const isAddDisabled = !isInStock || isQuantityExceeded;
+  const inventoryWarning = (() => {
+    if (!hasRecipe || !inventoryCheck?.isAvailable) {
+      return '';
+    }
+
+    if (inventoryCheck.maxServings <= 0) {
+      return PRODUCT_INVENTORY_MESSAGES.outOfIngredients;
+    }
+
+    if (isQuantityExceeded) {
+      return PRODUCT_INVENTORY_MESSAGES.insufficient(
+        inventoryCheck.maxServings
+      );
+    }
+
+    return '';
+  })();
+
   const handleAddToCart = () => {
+    if (isAddDisabled) {
+      return;
+    }
+
     cart.addItem(product._id, quantity);
     setQuantity(1);
     navigate('/menu', { state: { scrollToTop: true } });
   };
-
-  const isInStock = product.status === 'available' && product.stockQuantity > 0;
-  const isLowStock =
-    product.stockQuantity !== undefined &&
-    product.stockQuantity > 0 &&
-    product.stockQuantity <= (product.lowStockThreshold || 10);
 
   return (
     <div className="min-h-screen bg-white py-8">
@@ -230,7 +279,7 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {product.stockQuantity !== undefined && (
+              {!hasRecipe && product.stockQuantity !== undefined && (
                 <div className="flex items-center gap-2">
                   <MaterialIcon
                     name="inventory_2"
@@ -295,7 +344,7 @@ export default function ProductDetailPage() {
                 </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  disabled={!isInStock}
+                  disabled={isIncreaseDisabled}
                   className="px-3 py-2 text-lg font-medium text-muted hover:text-text disabled:opacity-50"
                 >
                   +
@@ -305,11 +354,16 @@ export default function ProductDetailPage() {
                 = {money(product.price * quantity)}
               </span>
             </div>
+            {inventoryWarning && (
+              <div className="rounded-lg bg-warning/10 px-4 py-2 text-sm text-warning">
+                {inventoryWarning}
+              </div>
+            )}
 
             {/* CTA Buttons */}
             <button
               onClick={handleAddToCart}
-              disabled={!isInStock}
+              disabled={isAddDisabled}
               className="w-full rounded-lg bg-primary px-6 py-3.5 text-lg font-semibold text-white hover:bg-primaryHover disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
             >
               <MaterialIcon name="shopping_cart" className="text-[20px]" />

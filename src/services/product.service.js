@@ -73,6 +73,22 @@ export async function getProductById(id) {
 }
 
 /**
+ * Kiem tra ton kho theo so luong yeu cau
+ * @param {string} id - Product ID
+ * @param {number} quantity - So luong yeu cau
+ * @returns {Promise<Object>} - { status, data: { inventory } }
+ */
+export async function getProductInventoryCheck(id, quantity = 1) {
+  const params = new URLSearchParams();
+  if (quantity) params.append('quantity', quantity);
+
+  const response = await api.get(
+    `/products/${id}/inventory-check?${params.toString()}`
+  );
+  return response.data;
+}
+
+/**
  * Create a new product (Staff/Admin only)
  * @param {Object} payload - Product data
  * @param {string} payload.canteenId - Canteen ID (required)
