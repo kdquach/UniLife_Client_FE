@@ -6,6 +6,7 @@ import MenuPage from "@/pages/Menu/index.jsx";
 import ProductDetailPage from "@/pages/Product/index.jsx";
 import FavoritePage from "@/pages/Favorite/index.jsx";
 import OrderHistoryPage from "@/pages/OrderHistory/OrderHistoryPage.jsx";
+import NotificationDetail from "@/pages/Notification/NotificationDetail.jsx";
 import ProfilePage from "@/pages/Profile/index.jsx";
 import Login from "@/pages/Auth/Login.jsx";
 import Register from "@/pages/Auth/Register.jsx";
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "/products/:id", element: <ProductDetailPage /> },
       { path: "/favorite", element: <FavoritePage /> },
       { path: "/orders", element: <OrderHistoryPage /> },
+      { path: "/notifications/:id", element: <NotificationDetail /> },
       { path: "/profile", element: <ProfilePage /> },
     ],
   },

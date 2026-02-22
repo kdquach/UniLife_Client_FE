@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getMyOrders } from "@/services/order.service";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getMyOrders, getOrderById } from "@/services/order.service";
 import OrderTabs from "@/components/orderHistory/OrderTabs";
 import Loader from "@/components/Loader";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -39,6 +40,8 @@ export default function OrderHistoryPage() {
   });
 
   const { openOrderDetail } = useRightPanel();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const fetchOrders = async () => {
     try {
@@ -70,6 +73,41 @@ export default function OrderHistoryPage() {
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, pagination.page]);
+
+  useEffect(() => {
+    const selectedOrderId = location.state?.orderId;
+    if (!selectedOrderId) return;
+
+    let active = true;
+
+    const openOrderFromNotification = async () => {
+      const existing = orders.find((item) => String(item._id) === String(selectedOrderId));
+      if (existing) {
+        openOrderDetail(existing);
+        navigate(location.pathname, { replace: true, state: null });
+        return;
+      }
+
+      try {
+        const response = await getOrderById(selectedOrderId);
+        const targetOrder = response?.data?.order;
+        if (!active || !targetOrder) return;
+        openOrderDetail(targetOrder);
+      } catch (error) {
+        console.error("Failed to open order detail from notification:", error);
+      } finally {
+        if (active) {
+          navigate(location.pathname, { replace: true, state: null });
+        }
+      }
+    };
+
+    openOrderFromNotification();
+
+    return () => {
+      active = false;
+    };
+  }, [location.state, location.pathname, navigate, openOrderDetail, orders]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);

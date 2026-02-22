@@ -6,15 +6,10 @@ import MaterialIcon from "@/components/MaterialIcon.jsx";
 import ProfileCluster from "@/components/header/ProfileCluster.jsx";
 import CampusSelectModal from "@/components/header/CampusSelectModal.jsx";
 import CampusTrigger from "@/components/header/CampusTrigger.jsx";
-import NotificationDropdown from "@/components/header/NotificationDropdown.jsx";
+import NotificationCenter from "@/components/header/NotificationCenter.jsx";
 import RequireCanteenModal from "@/components/header/RequireCanteenModal.jsx";
 import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
 import { useCampusStore } from "@/store/useCampusStore";
-
-const notifications = [
-  { id: "1", title: "Đơn hàng đã xác nhận", time: "2 phút trước" },
-  { id: "2", title: "Có khuyến mãi mới", time: "1 giờ trước" },
-];
 
 const CAMPUSES = [
   { key: "hcm", name: "Hồ Chí Minh", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img55.svg" },
@@ -92,7 +87,7 @@ export default function AppHeader() {
         />
 
         <div className="flex items-center gap-3">
-          <NotificationDropdown notifications={notifications} />
+          <NotificationCenter />
 
           <ProfileCluster
             isAuthenticated={userAuthenticated}
