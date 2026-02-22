@@ -22,14 +22,12 @@ export default function NotificationCenter() {
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedNotification, setSelectedNotification] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
   const limit = 10;
   const socketRef = useRef(null);
   const lastCanteenRef = useRef(null);
@@ -51,6 +49,11 @@ export default function NotificationCenter() {
 
   const getTypeConfig = (type) => typeConfig[type] || typeConfig.system;
 
+  const buildDashboardRefreshUrl = (path) => {
+    const refreshToken = Date.now();
+    return `http://localhost:5174${path}?refresh=${refreshToken}`;
+  };
+
   const openOrderFromNotification = (orderId) => {
     if (!orderId) return false;
     navigate("/orders", { state: { orderId } });
@@ -59,7 +62,7 @@ export default function NotificationCenter() {
   };
 
   const copyToClipboard = async (text) => {
-    if (!text) return;
+    if (!text) return false;
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -74,9 +77,20 @@ export default function NotificationCenter() {
         document.execCommand("copy");
         document.body.removeChild(area);
       }
+      return true;
     } catch (error) {
       console.error("Failed to copy voucher code", error);
+      return false;
     }
+  };
+
+  const extractVoucherCode = (notification, metadata) => {
+    const codeFromMetadata = metadata?.voucherCode || metadata?.code;
+    if (codeFromMetadata) return codeFromMetadata;
+
+    const raw = `${notification?.title || ""} ${notification?.content || ""}`;
+    const match = raw.match(/\b[A-Z0-9]{5,16}\b/);
+    return match?.[0] || "";
   };
 
   useEffect(() => {
@@ -228,31 +242,29 @@ export default function NotificationCenter() {
   const handleOpenNotification = async (notification) => {
     if (!notification) return;
     if (!notification?.isRead) {
-      handleMarkRead(notification);
+      await handleMarkRead(notification);
     }
 
-    if (notification.type === "order") {
-      const orderId = await resolveOrderId(notification);
-      if (orderId) {
-        openOrderFromNotification(orderId);
-      }
-      return;
-    }
+    const metadata = await resolveNotificationMetadata(notification);
+    const handled = await openByNotificationType(notification, metadata);
+    if (handled) return;
+  };
 
-    setExpandedId((prev) => (prev === notification.id ? null : notification.id));
+  const handleCopyPromotionCode = async (notification) => {
+    if (!notification || notification.type !== "promotion") return false;
+    const metadata = await resolveNotificationMetadata(notification);
+    const code = extractVoucherCode(notification, metadata);
+    return copyToClipboard(code);
   };
 
   const handleMarkRead = async (notification = null) => {
-    const target = notification || selectedNotification;
+    const target = notification;
     if (!target || target.isRead) return;
 
     try {
       await markAsRead(target.id);
       setNotifications((prev) =>
         prev.map((n) => (n.id === target.id ? { ...n, isRead: true } : n)),
-      );
-      setSelectedNotification((prev) =>
-        prev && prev.id === target.id ? { ...prev, isRead: true } : prev,
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
@@ -308,7 +320,6 @@ export default function NotificationCenter() {
       setPage(1);
       setHasNextPage(false);
       setShowAllNotifications(true);
-      setExpandedId(null);
     } catch (error) {
       console.error("Failed to load all notifications", error);
     } finally {
@@ -318,22 +329,72 @@ export default function NotificationCenter() {
 
   const handleOpenChange = (nextOpen) => {
     setDropdownOpen(nextOpen);
-    if (!nextOpen) {
-      setExpandedId(null);
-    }
   };
 
   const handleToastClick = async (notification) => {
+    const metadata = await resolveNotificationMetadata(notification);
+    const handled = await openByNotificationType(notification, metadata);
+    if (handled) return;
+  };
+
+  const openByNotificationType = async (notification, metadata = null) => {
+    const kind = metadata?.kind;
+
+    if (kind === "schedule_published") {
+      window.location.href = buildDashboardRefreshUrl("/staff/schedule");
+      return true;
+    }
+
+    if (kind === "shift_change_request") {
+      window.location.href = buildDashboardRefreshUrl("/manager/shift-requests");
+      return true;
+    }
+
     if (notification.type === "order") {
-      const orderId = await resolveOrderId(notification);
+      const orderId = metadata?.orderId || (await resolveOrderId(notification));
       if (orderId) {
         openOrderFromNotification(orderId);
       }
-      return;
+      setDropdownOpen(false);
+      return true;
     }
 
-    setDropdownOpen(true);
-    setExpandedId(notification.id);
+    if (!notification?.id) return false;
+
+    navigate(`/notifications/${notification.id}`, {
+      state: {
+        notification: {
+          id: notification.id,
+          title: notification.title,
+          content: notification.content || "",
+          time: notification.time,
+          createdAt: notification.createdAt,
+          type: notification.type,
+        },
+      },
+    });
+    setDropdownOpen(false);
+    return true;
+  };
+
+  const resolveNotificationMetadata = async (notification) => {
+    if (notification?.metadata) return notification.metadata;
+    if (!notification?.id) return null;
+
+    const full = await getNotificationById(notification.id);
+    if (full?.metadata) {
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notification.id
+            ? {
+              ...item,
+              metadata: full.metadata,
+            }
+            : item,
+        ),
+      );
+    }
+    return full?.metadata || null;
   };
 
   const resolveOrderId = async (notification) => {
@@ -348,6 +409,7 @@ export default function NotificationCenter() {
       notifications={notifications}
       badge={unreadCount}
       onItemClick={handleOpenNotification}
+      onCopyCode={handleCopyPromotionCode}
       onMarkAllRead={handleMarkAllRead}
       onLoadMore={handleLoadMore}
       hasMore={hasNextPage && !showAllNotifications}
@@ -356,8 +418,6 @@ export default function NotificationCenter() {
       open={dropdownOpen}
       onOpenChange={handleOpenChange}
       loadingAll={loadingAll}
-      onCopyCode={copyToClipboard}
-      expandedId={expandedId}
     />
   );
 }
@@ -367,7 +427,7 @@ function NotificationToast({ item, config, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-[360px] rounded-xl bg-white shadow-[0_8px_20px_rgba(15,23,42,0.08)] ring-1 ring-black/5"
+      className="w-90 rounded-xl bg-white shadow-[0_8px_20px_rgba(15,23,42,0.08)] ring-1 ring-black/5"
     >
       <div className="flex gap-3 px-4 py-3 text-left">
         <div className={`grid h-9 w-9 place-items-center rounded-full ${config.bg}`}>
