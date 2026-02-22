@@ -1,5 +1,26 @@
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 
+function resolveNotificationPath(item) {
+  if (!item) return null;
+  const type = item.type;
+  const orderId = item?.metadata?.orderId || item?.metadata?.order?._id || null;
+
+  if (type === "order") {
+    return orderId ? `/orders/${orderId}` : "/orders";
+  }
+  if (type === "shift") {
+    return "/shifts";
+  }
+  if (type === "feedback") {
+    return "/feedback";
+  }
+  if (type === "system" || type === "promotion") {
+    return item?.id ? `/notifications/${item.id}` : "/notifications";
+  }
+
+  return item?.id ? `/notifications/${item.id}` : "/notifications";
+}
+
 export default function NotificationItem({
   item,
   config,
@@ -14,11 +35,11 @@ export default function NotificationItem({
     <div
       role="button"
       tabIndex={0}
-      onClick={onClick}
+      onClick={() => onClick?.(item, { path: resolveNotificationPath(item) })}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onClick?.();
+          onClick?.(item, { path: resolveNotificationPath(item) });
         }
       }}
       className={`w-full rounded-xl px-3 py-3 text-left transition ${item?.isRead ? "bg-slate-50 hover:bg-slate-100" : "bg-orange-50/60 hover:bg-orange-50"}`}
