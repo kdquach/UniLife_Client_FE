@@ -13,6 +13,10 @@ import {
 } from "@/services/notification.service";
 import { createNotificationSocket } from "@/services/notification.socket";
 import { formatDate } from "@/utils/formatDate";
+import {
+  getNotificationSoundEnabled,
+  subscribeNotificationSoundPreference,
+} from "@/utils/notificationPreferences";
 import { useCampusStore } from "@/store/useCampusStore";
 import { useRightPanel } from "@/store/rightPanel.store.js";
 
@@ -22,15 +26,17 @@ export default function NotificationCenter() {
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => getNotificationSoundEnabled());
   const limit = 10;
   const socketRef = useRef(null);
   const lastCanteenRef = useRef(null);
+  const audioContextRef = useRef(null);
 
   const navigate = useNavigate();
   const userAuthenticated = isAuthenticated();
@@ -93,6 +99,75 @@ export default function NotificationCenter() {
     return match?.[0] || "";
   };
 
+  const ensureAudioContext = () => {
+    if (audioContextRef.current) return audioContextRef.current;
+    if (typeof window === "undefined") return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    audioContextRef.current = new AudioCtx();
+    return audioContextRef.current;
+  };
+
+  const playNotificationSound = async () => {
+    const context = ensureAudioContext();
+    if (!context) return;
+
+    try {
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      const now = context.currentTime;
+
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(880, now);
+      oscillator.frequency.exponentialRampToValueAtTime(1240, now + 0.16);
+
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.24);
+    } catch {
+      return;
+    }
+  };
+
+  const showBackgroundNotification = (notification) => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") {
+      return;
+    }
+    if (document.visibilityState !== "hidden") return;
+    if (Notification.permission !== "granted") return;
+
+    const browserNotification = new Notification(notification.title || "Thông báo", {
+      body: notification.content || "Bạn có thông báo mới.",
+      tag: `unilife-notification-${notification.id || Date.now()}`,
+      icon: "/vite.svg",
+    });
+
+    browserNotification.onclick = async () => {
+      window.focus();
+      await handleToastClick(notification);
+      browserNotification.close();
+    };
+  };
+
+  useEffect(() => {
+    if (!userAuthenticated) return;
+    if (typeof window === "undefined" || typeof Notification === "undefined") {
+      return;
+    }
+    if (Notification.permission !== "default") return;
+
+    Notification.requestPermission().catch(() => null);
+  }, [userAuthenticated]);
+
   useEffect(() => {
     let isMounted = true;
     let intervalId;
@@ -102,7 +177,7 @@ export default function NotificationCenter() {
         if (isMounted) {
           setNotifications([]);
           setUnreadCount(0);
-          setPage(1);
+          setNextCursor(null);
           setHasNextPage(false);
           setShowAllNotifications(false);
         }
@@ -111,7 +186,7 @@ export default function NotificationCenter() {
 
       try {
         const [result, count] = await Promise.all([
-          getMyNotifications({ limit, page: 1 }),
+          getMyNotifications({ limit }),
           getUnreadCount(),
         ]);
 
@@ -130,14 +205,14 @@ export default function NotificationCenter() {
 
         setNotifications(mapped);
         setUnreadCount(count);
-        setPage(1);
+        setNextCursor(result?.pagination?.nextCursor || null);
         setHasNextPage(Boolean(result?.pagination?.hasNextPage));
         setShowAllNotifications(false);
       } catch (error) {
         if (isMounted) {
           setNotifications([]);
           setUnreadCount(0);
-          setPage(1);
+          setNextCursor(null);
           setHasNextPage(false);
           setShowAllNotifications(false);
         }
@@ -153,6 +228,16 @@ export default function NotificationCenter() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [userAuthenticated]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeNotificationSoundPreference((enabled) => {
+      setSoundEnabled(enabled);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!userAuthenticated || !userId) return undefined;
@@ -186,6 +271,11 @@ export default function NotificationCenter() {
       setNotifications((prev) => [nextItem, ...prev].slice(0, 10));
       setUnreadCount((prev) => prev + 1);
 
+      if (soundEnabled) {
+        playNotificationSound();
+      }
+      showBackgroundNotification(nextItem);
+
       toast.custom(
         (t) => (
           <NotificationToast
@@ -211,7 +301,7 @@ export default function NotificationCenter() {
       socketRef.current = null;
       lastCanteenRef.current = null;
     };
-  }, [userAuthenticated, userId, canteenId]);
+  }, [userAuthenticated, userId, canteenId, soundEnabled]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -273,12 +363,11 @@ export default function NotificationCenter() {
   };
 
   const handleLoadMore = async () => {
-    if (loadingMore || !hasNextPage) return;
+    if (loadingMore || !hasNextPage || !nextCursor) return;
 
     try {
       setLoadingMore(true);
-      const nextPage = page + 1;
-      const result = await getMyNotifications({ limit, page: nextPage });
+      const result = await getMyNotifications({ limit, cursor: nextCursor });
       const mapped = (result?.data || []).map((n) => ({
         id: n._id,
         title: n.title,
@@ -291,7 +380,7 @@ export default function NotificationCenter() {
       }));
 
       setNotifications((prev) => [...prev, ...mapped]);
-      setPage(nextPage);
+      setNextCursor(result?.pagination?.nextCursor || null);
       setHasNextPage(Boolean(result?.pagination?.hasNextPage));
     } catch (error) {
       console.error("Failed to load more notifications", error);
@@ -317,7 +406,7 @@ export default function NotificationCenter() {
       }));
 
       setNotifications(mapped);
-      setPage(1);
+      setNextCursor(null);
       setHasNextPage(false);
       setShowAllNotifications(true);
     } catch (error) {
@@ -340,6 +429,25 @@ export default function NotificationCenter() {
   const openByNotificationType = async (notification, metadata = null) => {
     const kind = metadata?.kind;
 
+    if (notification.type === "order") {
+      const orderId = metadata?.orderId || (await resolveOrderId(notification));
+      navigate(orderId ? `/orders/${orderId}` : "/orders");
+      setDropdownOpen(false);
+      return true;
+    }
+
+    if (notification.type === "shift") {
+      navigate("/shifts");
+      setDropdownOpen(false);
+      return true;
+    }
+
+    if (notification.type === "feedback") {
+      navigate("/feedback");
+      setDropdownOpen(false);
+      return true;
+    }
+
     if (kind === "schedule_published") {
       window.location.href = buildDashboardRefreshUrl("/staff/schedule");
       return true;
@@ -347,15 +455,6 @@ export default function NotificationCenter() {
 
     if (kind === "shift_change_request") {
       window.location.href = buildDashboardRefreshUrl("/manager/shift-requests");
-      return true;
-    }
-
-    if (notification.type === "order") {
-      const orderId = metadata?.orderId || (await resolveOrderId(notification));
-      if (orderId) {
-        openOrderFromNotification(orderId);
-      }
-      setDropdownOpen(false);
       return true;
     }
 

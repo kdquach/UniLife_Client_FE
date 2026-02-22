@@ -1,7 +1,7 @@
 import { api } from "@/services/axios.config";
 
 export async function getMyNotifications(params = {}) {
-  const response = await api.get("/notifications/my", { params });
+  const response = await api.get("/notifications/feed", { params });
   return response.data || {};
 }
 
