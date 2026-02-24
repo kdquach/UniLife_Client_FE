@@ -11,7 +11,7 @@ import {
   markAllAsRead,
   markAsRead,
 } from "@/services/notification.service";
-import { createNotificationSocket } from "@/services/notification.socket";
+import { getNotificationSocket } from "@/services/notification.socket";
 import { formatDate } from "@/utils/formatDate";
 import {
   getNotificationSoundEnabled,
@@ -240,13 +240,21 @@ export default function NotificationCenter() {
   }, []);
 
   useEffect(() => {
-    if (!userAuthenticated || !userId) return undefined;
+    if (!userAuthenticated || !userId) return;
 
-    const socket = createNotificationSocket();
+    const socket = getNotificationSocket();
     socketRef.current = socket;
 
+    // Gắn auth trước khi connect
+    const token = localStorage.getItem("accessToken");
+    socket.auth = { token };
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     const handleConnect = () => {
-      socket.emit("register", { userId, canteenId });
+      socket.emit("register", { userId });
       if (canteenId) {
         socket.emit("join:canteen", canteenId);
       }
@@ -265,7 +273,7 @@ export default function NotificationCenter() {
         createdAt: createdAt.toISOString(),
         isRead: false,
         type: event.payload?.type || "system",
-        metadata: null,
+        metadata: event.payload?.metadata || null,
       };
 
       setNotifications((prev) => [nextItem, ...prev].slice(0, 10));
@@ -274,6 +282,7 @@ export default function NotificationCenter() {
       if (soundEnabled) {
         playNotificationSound();
       }
+
       showBackgroundNotification(nextItem);
 
       toast.custom(
@@ -287,9 +296,13 @@ export default function NotificationCenter() {
             }}
           />
         ),
-        { duration: 4500 },
+        { duration: 4500 }
       );
     };
+
+    // 🔥 Quan trọng: clear trước khi on để tránh duplicate
+    socket.off("connect");
+    socket.off("notification:new");
 
     socket.on("connect", handleConnect);
     socket.on("notification:new", handleNewNotification);
@@ -297,11 +310,9 @@ export default function NotificationCenter() {
     return () => {
       socket.off("connect", handleConnect);
       socket.off("notification:new", handleNewNotification);
-      socket.disconnect();
-      socketRef.current = null;
-      lastCanteenRef.current = null;
     };
-  }, [userAuthenticated, userId, canteenId, soundEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userAuthenticated, userId, canteenId]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -336,8 +347,7 @@ export default function NotificationCenter() {
     }
 
     const metadata = await resolveNotificationMetadata(notification);
-    const handled = await openByNotificationType(notification, metadata);
-    if (handled) return;
+    await openByNotificationType(notification, metadata);
   };
 
   const handleCopyPromotionCode = async (notification) => {
@@ -422,8 +432,7 @@ export default function NotificationCenter() {
 
   const handleToastClick = async (notification) => {
     const metadata = await resolveNotificationMetadata(notification);
-    const handled = await openByNotificationType(notification, metadata);
-    if (handled) return;
+    await openByNotificationType(notification, metadata);
   };
 
   const openByNotificationType = async (notification, metadata = null) => {
@@ -431,7 +440,11 @@ export default function NotificationCenter() {
 
     if (notification.type === "order") {
       const orderId = metadata?.orderId || (await resolveOrderId(notification));
-      navigate(orderId ? `/orders/${orderId}` : "/orders");
+      const opened = openOrderFromNotification(orderId);
+      if (!opened) {
+        navigate("/orders");
+        panel.expand();
+      }
       setDropdownOpen(false);
       return true;
     }

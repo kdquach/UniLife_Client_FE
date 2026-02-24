@@ -1,9 +1,8 @@
 import { io } from "socket.io-client";
 
-const resolveSocketBaseUrl = () => {
-  const explicit = import.meta.env.VITE_WS_BASE_URL;
-  if (explicit) return explicit;
+let socket = null;
 
+const resolveSocketBaseUrl = () => {
   const apiBase = import.meta.env.VITE_API_BASE_URL || "";
   if (apiBase) {
     return apiBase.replace(/\/api\/?$/, "");
@@ -16,9 +15,16 @@ const resolveSocketBaseUrl = () => {
   return "";
 };
 
-export const createNotificationSocket = () => {
+export const getNotificationSocket = () => {
+  if (socket) return socket;
+
   const baseUrl = resolveSocketBaseUrl();
-  return io(baseUrl, {
-    transports: ["websocket", "polling"],
+
+  socket = io(baseUrl, {
+    transports: ["websocket"],
+    autoConnect: false,
+    withCredentials: true,
   });
+
+  return socket;
 };
