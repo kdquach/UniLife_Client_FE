@@ -25,7 +25,9 @@ export const getNotificationSocket = () => {
     autoConnect: false,
     withCredentials: true,
     timeout: 5000,
-    reconnection: false,
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
   });
 
   return socket;
