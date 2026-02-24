@@ -8,11 +8,13 @@ export default function Tooltip({ title, children, placement = "top", ...props }
       title={title}
       placement={placement}
       mouseEnterDelay={0.06}
-      overlayInnerStyle={{
-        background: "var(--text)",
-        color: "var(--text-inverse)",
-        borderRadius: 12,
-        boxShadow: "var(--shadow-card)",
+      styles={{
+        body: {
+          background: "var(--text)",
+          color: "var(--text-inverse)",
+          borderRadius: 12,
+          boxShadow: "var(--shadow-card)",
+        },
       }}
       {...props}
     >

@@ -9,10 +9,6 @@ import Button from "@/components/Button";
 import Input from "@/components/Input";
 import Loader from "@/components/Loader";
 import imageNotFound from "@/assets/images/image-not-found.png";
-import {
-  getNotificationSoundEnabled,
-  setNotificationSoundEnabled,
-} from "@/utils/notificationPreferences";
 
 function ProgressRing({ percent = 0, size = 132, stroke = 12 }) {
   const clamped = Math.max(0, Math.min(100, percent));
@@ -82,7 +78,6 @@ export default function ProfilePage() {
     new: false,
     confirm: false,
   });
-  const [notificationSoundEnabled, setNotificationSoundEnabledState] = useState(() => getNotificationSoundEnabled());
 
   /* ================= FETCH PROFILE ================= */
   useEffect(() => {
@@ -272,12 +267,6 @@ export default function ProfilePage() {
     });
     setShowPasswords({ current: false, new: false, confirm: false });
     setShowChangePassword(false);
-  };
-
-  const handleToggleNotificationSound = (enabled) => {
-    setNotificationSoundEnabledState(enabled);
-    setNotificationSoundEnabled(enabled);
-    toast.success(enabled ? "Đã bật âm báo thông báo" : "Đã tắt âm báo thông báo");
   };
 
   /* ================= STATES ================= */
@@ -474,7 +463,7 @@ export default function ProfilePage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-[34px] text-muted hover:text-text"
+                    className="absolute right-3 top-8.5 text-muted hover:text-text"
                     onClick={() =>
                       setShowPasswords((p) => ({ ...p, current: !p.current }))
                     }
@@ -504,7 +493,7 @@ export default function ProfilePage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-[34px] text-muted hover:text-text"
+                    className="absolute right-3 top-8.5 text-muted hover:text-text"
                     onClick={() =>
                       setShowPasswords((p) => ({ ...p, new: !p.new }))
                     }
@@ -532,7 +521,7 @@ export default function ProfilePage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-[34px] text-muted hover:text-text"
+                    className="absolute right-3 top-8.5 text-muted hover:text-text"
                     onClick={() =>
                       setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))
                     }
@@ -570,34 +559,6 @@ export default function ProfilePage() {
             )}
           </section>
 
-          <section className="rounded-card bg-surface p-5 shadow-card">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-text">Âm báo thông báo</h2>
-                <p className="mt-1 text-sm text-muted">
-                  Phát âm thanh khi có thông báo mới.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                role="switch"
-                aria-checked={notificationSoundEnabled}
-                onClick={() =>
-                  handleToggleNotificationSound(!notificationSoundEnabled)
-                }
-                className={`relative h-7 w-12 rounded-full transition ${notificationSoundEnabled ? "bg-primary" : "bg-slate-300"}`}
-              >
-                <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${notificationSoundEnabled ? "left-6" : "left-1"}`}
-                />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted">
-              Trạng thái hiện tại: {notificationSoundEnabled ? "Đang bật" : "Đang tắt"}
-            </p>
-          </section>
         </div>
 
         {/* RIGHT */}
@@ -621,7 +582,7 @@ export default function ProfilePage() {
                       name={it.done ? "check_circle" : "radio_button_unchecked"}
                       className={
                         it.done
-                          ? "text-[18px] text-[color:var(--success)]"
+                          ? "text-[18px] text-(--success)"
                           : "text-[18px] text-muted"
                       }
                       filled={it.done}

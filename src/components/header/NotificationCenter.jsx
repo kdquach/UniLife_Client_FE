@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
@@ -7,36 +7,36 @@ import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
 import {
   getMyNotifications,
   getUnreadCount,
-  getNotificationById,
   markAllAsRead,
   markAsRead,
 } from "@/services/notification.service";
 import { getNotificationSocket } from "@/services/notification.socket";
 import { formatDate } from "@/utils/formatDate";
-import {
-  getNotificationSoundEnabled,
-  subscribeNotificationSoundPreference,
-} from "@/utils/notificationPreferences";
 import { useCampusStore } from "@/store/useCampusStore";
 import { useRightPanel } from "@/store/rightPanel.store.js";
 
 export default function NotificationCenter() {
+  const CLIENT_NOTIFICATION_TYPES = [
+    { value: "", label: "Tất cả loại" },
+    { value: "order", label: "Đơn hàng" },
+    { value: "promotion", label: "Khuyến mãi" },
+    { value: "system", label: "Hệ thống" },
+    { value: "feedback", label: "Phản hồi" },
+  ];
+
   const { selectedCanteen } = useCampusStore();
   const panel = useRightPanel();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [showAllNotifications, setShowAllNotifications] = useState(false);
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [loadingAll, setLoadingAll] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(() => getNotificationSoundEnabled());
-  const limit = 10;
+  const limit = 200;
   const socketRef = useRef(null);
   const lastCanteenRef = useRef(null);
-  const audioContextRef = useRef(null);
+  const networkErrorLoggedRef = useRef(false);
 
   const navigate = useNavigate();
   const userAuthenticated = isAuthenticated();
@@ -59,6 +59,20 @@ export default function NotificationCenter() {
     const refreshToken = Date.now();
     return `http://localhost:5174${path}?refresh=${refreshToken}`;
   };
+
+  const buildFilterParams = useCallback(() => {
+    const params = { limit };
+    if (selectedType) {
+      params.type = selectedType;
+    }
+    if (selectedStatus === "read") {
+      params.isRead = true;
+    }
+    if (selectedStatus === "unread") {
+      params.isRead = false;
+    }
+    return params;
+  }, [limit, selectedType, selectedStatus]);
 
   const openOrderFromNotification = (orderId) => {
     if (!orderId) return false;
@@ -97,45 +111,6 @@ export default function NotificationCenter() {
     const raw = `${notification?.title || ""} ${notification?.content || ""}`;
     const match = raw.match(/\b[A-Z0-9]{5,16}\b/);
     return match?.[0] || "";
-  };
-
-  const ensureAudioContext = () => {
-    if (audioContextRef.current) return audioContextRef.current;
-    if (typeof window === "undefined") return null;
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    audioContextRef.current = new AudioCtx();
-    return audioContextRef.current;
-  };
-
-  const playNotificationSound = async () => {
-    const context = ensureAudioContext();
-    if (!context) return;
-
-    try {
-      if (context.state === "suspended") {
-        await context.resume();
-      }
-
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      const now = context.currentTime;
-
-      oscillator.type = "triangle";
-      oscillator.frequency.setValueAtTime(880, now);
-      oscillator.frequency.exponentialRampToValueAtTime(1240, now + 0.16);
-
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.24);
-    } catch {
-      return;
-    }
   };
 
   const showBackgroundNotification = (notification) => {
@@ -177,16 +152,13 @@ export default function NotificationCenter() {
         if (isMounted) {
           setNotifications([]);
           setUnreadCount(0);
-          setNextCursor(null);
-          setHasNextPage(false);
-          setShowAllNotifications(false);
         }
         return;
       }
 
       try {
         const [result, count] = await Promise.all([
-          getMyNotifications({ limit }),
+          getMyNotifications(buildFilterParams()),
           getUnreadCount(),
         ]);
 
@@ -205,18 +177,21 @@ export default function NotificationCenter() {
 
         setNotifications(mapped);
         setUnreadCount(count);
-        setNextCursor(result?.pagination?.nextCursor || null);
-        setHasNextPage(Boolean(result?.pagination?.hasNextPage));
-        setShowAllNotifications(false);
       } catch (error) {
         if (isMounted) {
           setNotifications([]);
           setUnreadCount(0);
-          setNextCursor(null);
-          setHasNextPage(false);
-          setShowAllNotifications(false);
         }
-        console.error("Failed to load notifications", error);
+        const isNetworkError = error?.code === "ERR_NETWORK";
+        if (!isNetworkError) {
+          console.error("Failed to load notifications", error);
+          return;
+        }
+
+        if (!networkErrorLoggedRef.current) {
+          console.warn("Notification API is unreachable (backend may be down)");
+          networkErrorLoggedRef.current = true;
+        }
       }
     };
 
@@ -227,17 +202,7 @@ export default function NotificationCenter() {
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [userAuthenticated]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeNotificationSoundPreference((enabled) => {
-      setSoundEnabled(enabled);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  }, [userAuthenticated, buildFilterParams]);
 
   useEffect(() => {
     if (!userAuthenticated || !userId) return;
@@ -247,6 +212,7 @@ export default function NotificationCenter() {
 
     // Gắn auth trước khi connect
     const token = localStorage.getItem("accessToken");
+    if (!token) return;
     socket.auth = { token };
 
     if (!socket.connected) {
@@ -276,12 +242,16 @@ export default function NotificationCenter() {
         metadata: event.payload?.metadata || null,
       };
 
-      setNotifications((prev) => [nextItem, ...prev].slice(0, 10));
-      setUnreadCount((prev) => prev + 1);
+      const typeMatch = !selectedType || nextItem.type === selectedType;
+      const statusMatch = selectedStatus !== "read";
 
-      if (soundEnabled) {
-        playNotificationSound();
+      if (!typeMatch || !statusMatch) {
+        setUnreadCount((prev) => prev + 1);
+        return;
       }
+
+      setNotifications((prev) => [nextItem, ...prev].slice(0, 200));
+      setUnreadCount((prev) => prev + 1);
 
       showBackgroundNotification(nextItem);
 
@@ -342,17 +312,20 @@ export default function NotificationCenter() {
 
   const handleOpenNotification = async (notification) => {
     if (!notification) return;
-    if (!notification?.isRead) {
-      await handleMarkRead(notification);
-    }
+    try {
+      if (!notification?.isRead) {
+        await handleMarkRead(notification);
+      }
 
-    const metadata = await resolveNotificationMetadata(notification);
-    await openByNotificationType(notification, metadata);
+      await openByNotificationType(notification, notification?.metadata || null);
+    } catch (error) {
+      console.error("Failed to open notification", error);
+    }
   };
 
   const handleCopyPromotionCode = async (notification) => {
     if (!notification || notification.type !== "promotion") return false;
-    const metadata = await resolveNotificationMetadata(notification);
+    const metadata = notification?.metadata || null;
     const code = extractVoucherCode(notification, metadata);
     return copyToClipboard(code);
   };
@@ -372,38 +345,11 @@ export default function NotificationCenter() {
     }
   };
 
-  const handleLoadMore = async () => {
-    if (loadingMore || !hasNextPage || !nextCursor) return;
-
-    try {
-      setLoadingMore(true);
-      const result = await getMyNotifications({ limit, cursor: nextCursor });
-      const mapped = (result?.data || []).map((n) => ({
-        id: n._id,
-        title: n.title,
-        content: n.content,
-        time: formatDate(n.createdAt, "HH:mm DD/MM"),
-        createdAt: n.createdAt,
-        isRead: n.isRead,
-        type: n.type,
-        metadata: n.metadata || null,
-      }));
-
-      setNotifications((prev) => [...prev, ...mapped]);
-      setNextCursor(result?.pagination?.nextCursor || null);
-      setHasNextPage(Boolean(result?.pagination?.hasNextPage));
-    } catch (error) {
-      console.error("Failed to load more notifications", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   const handleLoadAllNotifications = async () => {
     if (loadingAll) return;
     try {
       setLoadingAll(true);
-      const result = await getMyNotifications({ limit: 200, page: 1 });
+      const result = await getMyNotifications(buildFilterParams());
       const mapped = (result?.data || []).map((n) => ({
         id: n._id,
         title: n.title,
@@ -416,13 +362,19 @@ export default function NotificationCenter() {
       }));
 
       setNotifications(mapped);
-      setNextCursor(null);
-      setHasNextPage(false);
-      setShowAllNotifications(true);
     } catch (error) {
       console.error("Failed to load all notifications", error);
     } finally {
       setLoadingAll(false);
+    }
+  };
+
+  const handleFilterChange = ({ type, status }) => {
+    if (type !== undefined) {
+      setSelectedType(type);
+    }
+    if (status !== undefined) {
+      setSelectedStatus(status);
     }
   };
 
@@ -431,15 +383,18 @@ export default function NotificationCenter() {
   };
 
   const handleToastClick = async (notification) => {
-    const metadata = await resolveNotificationMetadata(notification);
-    await openByNotificationType(notification, metadata);
+    try {
+      await openByNotificationType(notification, notification?.metadata || null);
+    } catch (error) {
+      console.error("Failed to open toast notification", error);
+    }
   };
 
   const openByNotificationType = async (notification, metadata = null) => {
     const kind = metadata?.kind;
 
     if (notification.type === "order") {
-      const orderId = metadata?.orderId || (await resolveOrderId(notification));
+      const orderId = metadata?.orderId || null;
       const opened = openOrderFromNotification(orderId);
       if (!opened) {
         navigate("/orders");
@@ -489,33 +444,6 @@ export default function NotificationCenter() {
     return true;
   };
 
-  const resolveNotificationMetadata = async (notification) => {
-    if (notification?.metadata) return notification.metadata;
-    if (!notification?.id) return null;
-
-    const full = await getNotificationById(notification.id);
-    if (full?.metadata) {
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item.id === notification.id
-            ? {
-              ...item,
-              metadata: full.metadata,
-            }
-            : item,
-        ),
-      );
-    }
-    return full?.metadata || null;
-  };
-
-  const resolveOrderId = async (notification) => {
-    if (notification?.metadata?.orderId) return notification.metadata.orderId;
-    if (!notification?.id) return null;
-    const full = await getNotificationById(notification.id);
-    return full?.metadata?.orderId || null;
-  };
-
   return (
     <NotificationDropdown
       notifications={notifications}
@@ -523,13 +451,17 @@ export default function NotificationCenter() {
       onItemClick={handleOpenNotification}
       onCopyCode={handleCopyPromotionCode}
       onMarkAllRead={handleMarkAllRead}
-      onLoadMore={handleLoadMore}
-      hasMore={hasNextPage && !showAllNotifications}
-      loadingMore={loadingMore}
+      onLoadMore={undefined}
+      hasMore={false}
+      loadingMore={false}
       onViewAll={handleLoadAllNotifications}
       open={dropdownOpen}
       onOpenChange={handleOpenChange}
       loadingAll={loadingAll}
+      selectedType={selectedType}
+      selectedStatus={selectedStatus}
+      onFilterChange={handleFilterChange}
+      typeOptions={CLIENT_NOTIFICATION_TYPES}
     />
   );
 }
