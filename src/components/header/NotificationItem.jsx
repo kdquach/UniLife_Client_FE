@@ -21,18 +21,19 @@ export default function NotificationItem({
           onClick?.(item);
         }
       }}
-      className={`w-full rounded-xl px-3 py-3 text-left transition ${item?.isRead ? "bg-slate-50 hover:bg-slate-100" : "bg-orange-50/60 hover:bg-orange-50"}`}
+      className={`w-full rounded-xl border border-slate-200 px-3 py-3 text-left transition ${item?.isRead ? "bg-white hover:bg-slate-50" : "bg-orange-50/35 hover:bg-orange-50/55"}`}
     >
       <div className="flex gap-3">
-        <div className={`mt-0.5 grid h-9 w-9 place-items-center rounded-full ${config.color}`}>
-          <MaterialIcon name={config.icon} className="text-[18px]" />
+        <div className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full ${config.color}`}>
+          <MaterialIcon name={config.icon} className="text-[16px]" />
         </div>
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-5 text-text">
             {item?.title || "Thông báo"}
           </p>
-          <p className="mt-1 text-[11px] font-medium text-slate-500">{item?.time}</p>
+          <p className="mt-0.5 truncate text-[13px] leading-5 text-text">{item?.content || ""}</p>
+          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">{item?.time}</p>
 
           {showCopy && (
             <button

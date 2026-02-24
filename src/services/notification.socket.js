@@ -24,6 +24,8 @@ export const getNotificationSocket = () => {
     transports: ["websocket"],
     autoConnect: false,
     withCredentials: true,
+    timeout: 5000,
+    reconnection: false,
   });
 
   return socket;

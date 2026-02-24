@@ -4,6 +4,7 @@ export async function getMyNotifications(params = {}) {
   const response = await api.get("/notifications/my", { params });
   return {
     data: Array.isArray(response.data?.data) ? response.data.data : [],
+    pagination: response.data?.pagination || null,
   };
 }
 
@@ -25,6 +26,26 @@ export async function markAsRead(notificationId) {
 
 export async function getNotificationById(notificationId) {
   if (!notificationId) return null;
-  const response = await api.get(`/notifications/${notificationId}`);
-  return response.data?.data?.notification || null;
+  try {
+    const response = await api.get(`/notifications/${notificationId}`);
+    return response.data?.data?.notification || null;
+  } catch (error) {
+    const status = error?.response?.status;
+    const shouldFallback = status === 403 || status === 404 || status === 405;
+
+    if (!shouldFallback) {
+      throw error;
+    }
+
+    try {
+      const fallback = await getMyNotifications({ limit: 100 });
+      const rows = Array.isArray(fallback?.data) ? fallback.data : [];
+      return (
+        rows.find((item) => String(item?._id || item?.id) === String(notificationId)) ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  }
 }

@@ -52,3 +52,16 @@
 .ant-tooltip .ant-tooltip-arrow::before {
 	background: var(--text) !important;
 }
+
+.client-notification-dropdown .client-notification-select .ant-select-selector,
+.client-notification-dropdown .client-notification-select.ant-select-focused .ant-select-selector,
+.client-notification-dropdown .client-notification-select.ant-select-open .ant-select-selector {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+.client-notification-dropdown .client-notification-select .ant-select-arrow {
+	color: #94a3b8 !important;
+}
