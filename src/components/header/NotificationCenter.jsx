@@ -55,11 +55,6 @@ export default function NotificationCenter() {
 
   const getTypeConfig = (type) => typeConfig[type] || typeConfig.system;
 
-  const buildDashboardRefreshUrl = (path) => {
-    const refreshToken = Date.now();
-    return `http://localhost:5174${path}?refresh=${refreshToken}`;
-  };
-
   const buildFilterParams = useCallback(() => {
     const params = { limit };
     if (selectedType) {
@@ -219,27 +214,46 @@ export default function NotificationCenter() {
       socket.connect();
     }
 
-    const handleConnect = () => {
-      socket.emit("register", { userId });
+    const handleConnect = async () => {
       if (canteenId) {
         socket.emit("join:canteen", canteenId);
       }
       lastCanteenRef.current = canteenId;
+
+      try {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      } catch {
+      }
+    };
+
+    const handleReconnect = async () => {
+      if (canteenId) {
+        socket.emit("join:canteen", canteenId);
+      }
+
+      try {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      } catch {
+      }
     };
 
     const handleNewNotification = (event) => {
-      if (!event?.payload?.title) return;
+      if (!event?.title) return;
 
-      const createdAt = new Date();
+      const createdAt = event.createdAt ? new Date(event.createdAt) : new Date();
+      const metadata = event.meta && typeof event.meta === "object" ? event.meta : null;
+
       const nextItem = {
-        id: event.payload?.notificationId || `rt-${createdAt.getTime()}`,
-        title: event.payload.title,
-        content: event.payload.content || "",
+        id: event.id || `rt-${createdAt.getTime()}`,
+        title: event.title,
+        content: event.content || "",
         time: formatDate(createdAt, "HH:mm DD/MM"),
         createdAt: createdAt.toISOString(),
-        isRead: false,
-        type: event.payload?.type || "system",
-        metadata: event.payload?.metadata || null,
+        isRead: Boolean(event.isRead),
+        type: event.type || "system",
+        metadata,
       };
 
       const typeMatch = !selectedType || nextItem.type === selectedType;
@@ -251,7 +265,9 @@ export default function NotificationCenter() {
       }
 
       setNotifications((prev) => [nextItem, ...prev].slice(0, 200));
-      setUnreadCount((prev) => prev + 1);
+      if (!nextItem.isRead) {
+        setUnreadCount((prev) => prev + 1);
+      }
 
       showBackgroundNotification(nextItem);
 
@@ -270,19 +286,16 @@ export default function NotificationCenter() {
       );
     };
 
-    // 🔥 Quan trọng: clear trước khi on để tránh duplicate
-    socket.off("connect");
-    socket.off("notification:new");
-
     socket.on("connect", handleConnect);
+    socket.on("reconnect", handleReconnect);
     socket.on("notification:new", handleNewNotification);
 
     return () => {
       socket.off("connect", handleConnect);
+      socket.off("reconnect", handleReconnect);
       socket.off("notification:new", handleNewNotification);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userAuthenticated, userId, canteenId]);
+  }, [userAuthenticated, userId, canteenId, selectedType, selectedStatus]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -413,16 +426,6 @@ export default function NotificationCenter() {
     if (notification.type === "feedback") {
       navigate("/feedback");
       setDropdownOpen(false);
-      return true;
-    }
-
-    if (kind === "schedule_published") {
-      window.location.href = buildDashboardRefreshUrl("/staff/schedule");
-      return true;
-    }
-
-    if (kind === "shift_change_request") {
-      window.location.href = buildDashboardRefreshUrl("/manager/shift-requests");
       return true;
     }
 
