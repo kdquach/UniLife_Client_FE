@@ -89,24 +89,52 @@ export default function ProductDetailPage() {
     product.stockQuantity !== undefined &&
     product.stockQuantity > 0 &&
     product.stockQuantity <= (product.lowStockThreshold || 10);
-  const maxServings = hasRecipe ? inventoryCheck?.maxServings : null;
+
+  // Tính maxServings cho cả recipe và stockQuantity
+  const maxServings = hasRecipe
+    ? inventoryCheck?.maxServings
+    : product.stockQuantity || 0;
+
+  // Kiểm tra số lượng vượt quá cho cả recipe và stockQuantity
   const isQuantityExceeded =
-    hasRecipe && maxServings !== null && quantity > maxServings;
-  const isIncreaseDisabled = !isInStock;
+    isInStock &&
+    maxServings !== null &&
+    maxServings !== undefined &&
+    quantity > maxServings;
+
+  // Disable nút tăng khi hết hàng HOẶC đã đạt số lượng tối đa
+  const isIncreaseDisabled =
+    !isInStock ||
+    (maxServings !== null &&
+      maxServings !== undefined &&
+      quantity >= maxServings);
+
   const isAddDisabled = !isInStock || isQuantityExceeded;
   const inventoryWarning = (() => {
-    if (!hasRecipe || !inventoryCheck?.isAvailable) {
+    // Cảnh báo cho sản phẩm có recipe
+    if (hasRecipe) {
+      if (!inventoryCheck?.isAvailable) {
+        return '';
+      }
+
+      if (inventoryCheck.maxServings <= 0) {
+        return PRODUCT_INVENTORY_MESSAGES.outOfIngredients;
+      }
+
+      if (isQuantityExceeded) {
+        return PRODUCT_INVENTORY_MESSAGES.insufficient(
+          inventoryCheck.maxServings
+        );
+      }
+
       return '';
     }
 
-    if (inventoryCheck.maxServings <= 0) {
-      return PRODUCT_INVENTORY_MESSAGES.outOfIngredients;
-    }
-
-    if (isQuantityExceeded) {
-      return PRODUCT_INVENTORY_MESSAGES.insufficient(
-        inventoryCheck.maxServings
-      );
+    // Cảnh báo cho sản phẩm dùng stockQuantity
+    if (!hasRecipe && isInStock) {
+      if (isQuantityExceeded) {
+        return `Chỉ còn ${product.stockQuantity} sản phẩm. Vui lòng giảm số lượng.`;
+      }
     }
 
     return '';
