@@ -5,7 +5,8 @@ import MaterialIcon from "@/components/MaterialIcon.jsx";
 import NotificationDropdown from "@/components/header/NotificationDropdown.jsx";
 import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
 import {
-  getMyNotifications,
+  getNotificationById,
+  getNotificationFeed,
   getUnreadCount,
   markAllAsRead,
   markAsRead,
@@ -153,7 +154,7 @@ export default function NotificationCenter() {
 
       try {
         const [result, count] = await Promise.all([
-          getMyNotifications(buildFilterParams()),
+          getNotificationFeed(buildFilterParams()),
           getUnreadCount(),
         ]);
 
@@ -191,7 +192,7 @@ export default function NotificationCenter() {
     };
 
     loadNotifications();
-    intervalId = setInterval(loadNotifications, 30000);
+    intervalId = setInterval(loadNotifications, 120000);
 
     return () => {
       isMounted = false;
@@ -223,7 +224,8 @@ export default function NotificationCenter() {
       try {
         const count = await getUnreadCount();
         setUnreadCount(count);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
       }
     };
 
@@ -235,7 +237,8 @@ export default function NotificationCenter() {
       try {
         const count = await getUnreadCount();
         setUnreadCount(count);
-      } catch {
+      } catch(error) {
+        console.error("Failed to fetch unread count:", error);
       }
     };
 
@@ -330,7 +333,8 @@ export default function NotificationCenter() {
         await handleMarkRead(notification);
       }
 
-      await openByNotificationType(notification, notification?.metadata || null);
+      const metadata = await resolveNotificationMetadata(notification);
+      await openByNotificationType(notification, metadata);
     } catch (error) {
       console.error("Failed to open notification", error);
     }
@@ -362,7 +366,7 @@ export default function NotificationCenter() {
     if (loadingAll) return;
     try {
       setLoadingAll(true);
-      const result = await getMyNotifications(buildFilterParams());
+      const result = await getNotificationFeed(buildFilterParams());
       const mapped = (result?.data || []).map((n) => ({
         id: n._id,
         title: n.title,
@@ -395,43 +399,77 @@ export default function NotificationCenter() {
     setDropdownOpen(nextOpen);
   };
 
+  const closeAndNavigate = (to, options = undefined) => {
+    setDropdownOpen(false);
+    navigate(to, options);
+  };
+
   const handleToastClick = async (notification) => {
     try {
-      await openByNotificationType(notification, notification?.metadata || null);
+      const metadata = await resolveNotificationMetadata(notification);
+      await openByNotificationType(notification, metadata);
     } catch (error) {
       console.error("Failed to open toast notification", error);
     }
   };
 
+  const shouldFetchNotificationDetails = (notification) => {
+    if (!notification?.id) return false;
+    if (notification?.metadata) return false;
+    return ["order", "promotion", "shift", "feedback"].includes(notification?.type);
+  };
+
+  const resolveNotificationMetadata = async (notification) => {
+    if (!shouldFetchNotificationDetails(notification)) {
+      return notification?.metadata || null;
+    }
+
+    try {
+      const full = await getNotificationById(notification.id);
+      const metadata = full?.metadata || null;
+
+      if (metadata) {
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === notification.id ? { ...item, metadata } : item,
+          ),
+        );
+      }
+
+      return metadata;
+    } catch (error) {
+      console.error("Failed to resolve notification metadata", error);
+      return notification?.metadata || null;
+    }
+  };
+
   const openByNotificationType = async (notification, metadata = null) => {
-    const kind = metadata?.kind;
 
     if (notification.type === "order") {
       const orderId = metadata?.orderId || null;
       const opened = openOrderFromNotification(orderId);
       if (!opened) {
-        navigate("/orders");
+        closeAndNavigate("/orders");
         panel.expand();
+      } else {
+        setDropdownOpen(false);
       }
-      setDropdownOpen(false);
       return true;
     }
 
     if (notification.type === "shift") {
-      navigate("/shifts");
-      setDropdownOpen(false);
+      closeAndNavigate("/shifts");
       return true;
     }
 
     if (notification.type === "feedback") {
-      navigate("/feedback");
-      setDropdownOpen(false);
+      closeAndNavigate("/feedback");
       return true;
     }
 
     if (!notification?.id) return false;
 
-    navigate(`/notifications/${notification.id}`, {
+    closeAndNavigate(`/notifications/${notification.id}`, {
       state: {
         notification: {
           id: notification.id,
@@ -443,7 +481,6 @@ export default function NotificationCenter() {
         },
       },
     });
-    setDropdownOpen(false);
     return true;
   };
 
