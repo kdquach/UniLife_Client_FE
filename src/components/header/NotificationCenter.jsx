@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import NotificationDropdown from "@/components/header/NotificationDropdown.jsx";
 import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
+import { getAccessToken } from "@/utils/storage";
 import {
   getNotificationById,
   getNotificationFeed,
@@ -207,7 +208,7 @@ export default function NotificationCenter() {
     socketRef.current = socket;
 
     // Gắn auth trước khi connect
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     if (!token) return;
     socket.auth = { token };
 
