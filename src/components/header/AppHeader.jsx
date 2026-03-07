@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logomd from "@/assets/images/logo-md.png";
 import logolg from "@/assets/images/logo-lg.png";
@@ -9,18 +9,22 @@ import CampusTrigger from "@/components/header/CampusTrigger.jsx";
 import NotificationCenter from "@/components/header/NotificationCenter.jsx";
 import RequireCanteenModal from "@/components/header/RequireCanteenModal.jsx";
 import { getCurrentUser, isAuthenticated } from "@/services/auth.service";
+import { getCanteensByCampus } from "@/services/canteen.service";
+import { getActiveCampuses } from "@/services/campus.service";
 import { useCampusStore } from "@/store/useCampusStore";
 
-const CAMPUSES = [
-  { key: "hcm", name: "Hồ Chí Minh", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img55.svg" },
-  { key: "ct", name: "Cần Thơ", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img4.svg" },
-  { key: "hn", name: "Hà Nội", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img3.svg" },
-  { key: "qn", name: "Quy Nhơn", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img2.svg" },
-  { key: "dn", name: "Đà Nẵng", image: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img1.svg" },
-];
+const CAMPUS_IMAGE_BY_CODE = {
+  HCM: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img55.svg",
+  CT: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img4.svg",
+  HN: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img3.svg",
+  QN: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img2.svg",
+  DN: "https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/branch-item-img1.svg",
+};
 
 export default function AppHeader() {
   const { selectedCampus, selectedCanteen } = useCampusStore();
+  const [campuses, setCampuses] = useState([]);
+  const [offTodayCount, setOffTodayCount] = useState(0);
 
   const [openCampus, setOpenCampus] = useState(() => !selectedCampus);
   const [showRequireModal, setShowRequireModal] = useState(false);
@@ -30,6 +34,57 @@ export default function AppHeader() {
   const navigate = useNavigate();
   const userAuthenticated = isAuthenticated();
   const currentUser = getCurrentUser();
+
+  useEffect(() => {
+    const loadCampuses = async () => {
+      try {
+        const data = await getActiveCampuses();
+        const mapped = Array.isArray(data)
+          ? data.map((item) => ({
+            ...item,
+            image: CAMPUS_IMAGE_BY_CODE[String(item?.code || "").toUpperCase()] || null,
+          }))
+          : [];
+        setCampuses(mapped);
+      } catch {
+        setCampuses([]);
+      }
+    };
+
+    void loadCampuses();
+  }, []);
+
+  useEffect(() => {
+    const loadCanteenOffToday = async () => {
+      if (!selectedCampus) {
+        setOffTodayCount(0);
+        return;
+      }
+
+      try {
+        const canteens = await getCanteensByCampus(selectedCampus);
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+        const count = (Array.isArray(canteens) ? canteens : []).filter((item) => {
+          const offDates = Array.isArray(item?.offDates) ? item.offDates : [];
+          return offDates.includes(today);
+        }).length;
+
+        setOffTodayCount(count);
+      } catch {
+        setOffTodayCount(0);
+      }
+    };
+
+    void loadCanteenOffToday();
+  }, [selectedCampus]);
+
+  const selectedCampusName = useMemo(() => {
+    if (!selectedCampus) return "Chọn campus";
+    const found = campuses.find((item) => String(item._id) === String(selectedCampus));
+    return found?.name || "Chọn campus";
+  }, [campuses, selectedCampus]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -82,8 +137,10 @@ export default function AppHeader() {
         </div>
 
         <CampusTrigger
-          campus={selectedCampus ? CAMPUSES.find(c => c.key === selectedCampus)?.name : 'Chọn campus'}
+          campus={selectedCampusName}
           onClick={() => setOpenCampus(true)}
+          hasOffToday={offTodayCount > 0}
+          offTodayCount={offTodayCount}
         />
 
         <div className="flex items-center gap-3">
@@ -100,7 +157,7 @@ export default function AppHeader() {
         <CampusSelectModal
           open={openCampus}
           onClose={() => setOpenCampus(false)}
-          campuses={CAMPUSES}
+          campuses={campuses}
         />
       )}
       <RequireCanteenModal open={showRequireModal} onClose={() => setShowRequireModal(false)} />

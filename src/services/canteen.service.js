@@ -1,13 +1,14 @@
 import { api } from '@/services/axios.config';
 
 /**
- * Get canteens by campus/location
- * @param {string} location - Campus name (e.g., 'Hồ Chí Minh')
- * @returns {Promise<Array>} - List of canteens
+ * Lấy danh sách canteen theo campusId
+ * @param {string} campusId - ID của campus
+ * @returns {Promise<Array>} Danh sách canteen
  */
-export async function getCanteensByLocation(location) {
+export async function getCanteensByCampus(campusId) {
   const params = new URLSearchParams();
-  if (location) params.append('location', location);
+  if (campusId) params.append('campusId', campusId);
+  params.append('status', 'active');
   const res = await api.get(`/canteens?${params.toString()}`);
   return res.data?.data?.canteens || [];
 }
