@@ -1,10 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
 import { CampusContext } from "./campus.context";
 
+const isMongoId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
 export function CampusProvider({ children }) {
   const [selectedCampus, setSelectedCampus] = useState(() => {
     try {
-      return localStorage.getItem("selectedCampus") || null;
+      const raw = localStorage.getItem("selectedCampus") || null;
+      return isMongoId(raw) ? raw : null;
     } catch {
       return null;
     }
@@ -12,7 +15,9 @@ export function CampusProvider({ children }) {
   const [selectedCanteen, setSelectedCanteen] = useState(() => {
     try {
       const raw = localStorage.getItem("selectedCanteen");
-      return raw ? JSON.parse(raw) : null;
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed?.id || !isMongoId(parsed.id)) return null;
+      return parsed;
     } catch {
       return null;
     }

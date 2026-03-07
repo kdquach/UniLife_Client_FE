@@ -19,10 +19,40 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
   const { canteens, loading, error, fetchCanteens } = useCanteen();
 
   const initializedRef = useRef(false);
+  const today = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
 
-  // 🔹 Map campus key → name
-  const campusKeyToName = (key) =>
-    campuses?.find((c) => c.key === key)?.name || "";
+  const getTodayOperatingMeta = (canteen) => {
+    const isActiveStatus = canteen?.status === "active";
+    const isOffToday = Array.isArray(canteen?.offDates) && canteen.offDates.includes(today);
+
+    if (!isActiveStatus) {
+      return {
+        isOperatingToday: false,
+        dotClass: "bg-info",
+        label: "Không hoạt động",
+      };
+    }
+
+    if (isOffToday) {
+      return {
+        isOperatingToday: false,
+        dotClass: "bg-warning",
+        label: "Nghỉ hôm nay",
+      };
+    }
+
+    return {
+      isOperatingToday: true,
+      dotClass: "bg-success",
+      label: "Hoạt động hôm nay",
+    };
+  };
 
   /**
    * ✅ INIT STATE – CHỈ CHẠY 1 LẦN KHI MODAL MỞ
@@ -30,7 +60,7 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
   useEffect(() => {
     if (!open || initializedRef.current) return;
 
-    const initCampus = selectedCampus || campuses?.[0]?.key || "";
+    const initCampus = selectedCampus || campuses?.[0]?._id || "";
     setTempCampus(initCampus);
     setTempCanteen(selectedCanteen?.id || null);
     setActiveCanteen(
@@ -48,9 +78,21 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
    */
   useEffect(() => {
     if (!tempCampus) return;
-    fetchCanteens(campusKeyToName(tempCampus));
+    fetchCanteens(tempCampus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempCampus]);
+
+  useEffect(() => {
+    if (!activeCanteen?.id && !activeCanteen?._id) return;
+    if (!Array.isArray(canteens) || canteens.length === 0) return;
+
+    const currentId = activeCanteen?._id || activeCanteen?.id;
+    const fullCanteen = canteens.find((item) => String(item._id) === String(currentId));
+    if (fullCanteen) {
+      setActiveCanteen(fullCanteen);
+      setTempCanteen(fullCanteen._id);
+    }
+  }, [activeCanteen?._id, activeCanteen?.id, canteens]);
 
   /**
    * ✅ RESET KHI MODAL ĐÓNG
@@ -65,9 +107,14 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
   }, [open]);
 
   const campusObj = useMemo(
-    () => campuses?.find((c) => c.key === tempCampus) || {},
+    () => campuses?.find((c) => String(c._id) === String(tempCampus)) || {},
     [campuses, tempCampus]
   );
+
+  const activeOperatingMeta = useMemo(() => {
+    if (!activeCanteen) return null;
+    return getTodayOperatingMeta(activeCanteen);
+  }, [activeCanteen, today]);
 
   return (
     <Modal
@@ -96,15 +143,15 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
             <div className="mt-4 flex flex-wrap gap-2">
               {campuses.map((c) => (
                 <button
-                  key={c.key}
+                  key={c._id}
                   onClick={() => {
-                    setTempCampus(c.key);
+                    setTempCampus(c._id);
                     setTempCanteen(null);
                     setActiveCanteen(null);
                   }}
                   className={clsx(
                     "rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200",
-                    tempCampus === c.key
+                    String(tempCampus) === String(c._id)
                       ? "bg-primary text-inverse shadow-lift"
                       : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift"
                   )}
@@ -122,43 +169,53 @@ export default function CampusSelectModal({ open, onClose, campuses }) {
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <div className="mt-2 flex flex-wrap gap-2">
-              {canteens.map((c) => (
-                <button
-                  key={c._id}
-                  disabled={c.status !== "active"}
-                  onClick={() => {
-                    setTempCanteen(c._id);
-                    setActiveCanteen(c);
-                  }}
-                  className={clsx(
-                    "rounded-full px-4 py-1.5 text-sm flex items-center gap-2 font-medium transition-all duration-200",
-                    tempCanteen === c._id
-                      ? "bg-primary text-inverse shadow-lift"
-                      : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift",
-                    c.status !== "active" && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <span
+              {canteens.map((c) => {
+                const operatingMeta = getTodayOperatingMeta(c);
+                return (
+                  <button
+                    key={c._id}
+                    title={`${operatingMeta.label} | ${c.openingTime || "--:--"} - ${c.closingTime || "--:--"}`}
+                    disabled={c.status !== "active"}
+                    onClick={() => {
+                      setTempCanteen(c._id);
+                      setActiveCanteen(c);
+                    }}
                     className={clsx(
-                      "h-2 w-2 rounded-full",
-                      c.status === "active" ? "bg-success" : "bg-info"
+                      "rounded-full px-4 py-1.5 text-sm flex items-center gap-2 font-medium transition-all duration-200",
+                      tempCanteen === c._id
+                        ? "bg-primary text-inverse shadow-lift"
+                        : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift",
+                      c.status !== "active" && "opacity-50 cursor-not-allowed"
                     )}
-                  />
-                  {c.name}
-                </button>
-              ))}
+                  >
+                    <span
+                      className={clsx(
+                        "h-2 w-2 rounded-full",
+                        operatingMeta.dotClass
+                      )}
+                    />
+                    {c.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {activeCanteen && (
             <div className="rounded-card bg-surfaceMuted p-3 shadow-card">
               <div className="font-semibold">{activeCanteen.name}</div>
-              <div className="text-sm text-muted">
-                Trạng thái:{" "}
-                {activeCanteen.status === "active"
-                  ? "Đang hoạt động"
-                  : "Không hoạt động"}
+              <div className="text-sm text-muted flex items-center gap-2">
+                <span className={clsx("h-2.5 w-2.5 rounded-full", activeOperatingMeta?.dotClass || "bg-info")} />
+                <span>Trạng thái hôm nay: {activeOperatingMeta?.label || "Không xác định"}</span>
               </div>
+              <div className="text-sm text-muted">
+                Giờ hoạt động: {activeCanteen.openingTime || "--:--"} - {activeCanteen.closingTime || "--:--"}
+              </div>
+              {Array.isArray(activeCanteen.offDates) && activeCanteen.offDates.length > 0 && (
+                <div className="text-xs text-muted mt-1">
+                  Ngày nghỉ: {activeCanteen.offDates.join(", ")}
+                </div>
+              )}
             </div>
           )}
 
