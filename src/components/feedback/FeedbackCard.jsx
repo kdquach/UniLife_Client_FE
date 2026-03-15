@@ -194,11 +194,10 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
                   <MaterialIcon
                     name="star"
                     filled
-                    className={`text-[32px] ${
-                      Number(editData.rating) >= star
+                    className={`text-[32px] ${Number(editData.rating) >= star
                         ? 'text-warning'
                         : 'text-warning/25 hover:text-warning/50'
-                    } transition`}
+                      } transition`}
                   />
                 </button>
               ))}
