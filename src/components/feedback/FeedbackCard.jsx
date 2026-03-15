@@ -6,6 +6,7 @@ import Loader from '@/components/Loader.jsx';
 import { formatDate } from '@/utils/formatDate.js';
 import RatingStars from './RatingStars';
 import SimpleRating from './SimpleRating';
+import RepliesSection from './RepliesSection.jsx';
 
 export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
   console.log('AUTH USER ID:', user?._id);
   console.log('FEEDBACK USER ID:', feedback.userId?._id);
 
-  // const [showReplies, setShowReplies] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -193,11 +194,10 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
                   <MaterialIcon
                     name="star"
                     filled
-                    className={`text-[32px] ${
-                      Number(editData.rating) >= star
+                    className={`text-[32px] ${Number(editData.rating) >= star
                         ? 'text-warning'
                         : 'text-warning/25 hover:text-warning/50'
-                    } transition`}
+                      } transition`}
                   />
                 </button>
               ))}
@@ -290,23 +290,23 @@ export default function FeedbackCard({ feedback, onFeedbackUpdate }) {
       )}
 
       {/* Replies Toggle */}
-      {/* {!isEditing && (
+      {!isEditing && (
         <button
           onClick={() => setShowReplies(!showReplies)}
-          className="flex items-center gap-2 text-primary hover:text-primaryHover font-medium transition text-sm"
+          className="flex items-center gap-2 px-6 pb-3 text-primary hover:text-primaryHover font-medium transition text-sm"
         >
           <MaterialIcon
             name={showReplies ? 'expand_less' : 'expand_more'}
             className="text-[18px]"
           />
-          {showReplies ? 'Ẩn' : 'Xem'} phản hồi
+          {showReplies ? 'Ẩn phản hồi' : 'Xem phản hồi từ quản lý'}
         </button>
-      )} */}
+      )}
 
       {/* Replies Section */}
-      {/* {showReplies && !isEditing && (
+      {showReplies && !isEditing && (
         <RepliesSection feedbackId={feedback._id} />
-      )} */}
+      )}
     </div>
   );
 }
