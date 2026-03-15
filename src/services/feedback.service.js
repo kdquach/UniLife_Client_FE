@@ -102,3 +102,31 @@ export async function deleteFeedback(id) {
   const response = await api.delete(`/feedbacks/${id}`);
   return response.data;
 }
+
+/**
+ * Get replies of a feedback (read-only for client)
+ * @param {string} feedbackId - Feedback ID
+ * @param {Object} options - Query options (page, limit, sort)
+ * @returns {Promise<{ data: Array, pagination: Object | null }>}
+ */
+export async function getFeedbackReplies(feedbackId, options = {}) {
+  if (!feedbackId) return { data: [], pagination: null };
+
+  const params = new URLSearchParams();
+
+  if (options.page) params.append('page', options.page);
+  if (options.limit) params.append('limit', options.limit);
+  if (options.sort) params.append('sort', options.sort);
+
+  const response = await api.get(
+    `/feedback-replies/${feedbackId}/replies?${params.toString()}`
+  );
+
+  const data = Array.isArray(response.data?.data)
+    ? response.data.data
+    : [];
+  const pagination = response.data?.pagination || null;
+
+  return { data, pagination };
+}
+

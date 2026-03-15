@@ -77,7 +77,7 @@ export default function NotificationDetail() {
         <p className="mt-2 text-xs font-medium text-muted">{notification.time}</p>
       </header>
 
-      <article className="whitespace-pre-line text-sm leading-7 text-text md:text-base">
+      <article className="whitespace-pre-line text-xs leading-6 text-text md:text-sm">
         {notification.content || "(Không có nội dung)"}
       </article>
     </section>
