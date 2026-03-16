@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import { getNotificationById } from "@/services/notification.service";
+import { useCampusStore } from "@/store/useCampusStore";
 import { formatDate } from "@/utils/formatDate";
 
 export default function NotificationDetail() {
   const { id } = useParams();
   const location = useLocation();
+  const { selectedCanteen } = useCampusStore();
+  const canteenId = selectedCanteen?.id || selectedCanteen?._id || null;
   const preloaded = location.state?.notification || null;
   const [notification, setNotification] = useState(preloaded);
   const [loading, setLoading] = useState(!preloaded);
@@ -20,7 +23,7 @@ export default function NotificationDetail() {
 
       try {
         setLoading(true);
-        const full = await getNotificationById(id);
+        const full = await getNotificationById(id, canteenId ? { canteenId } : {});
         if (!active) return;
 
         if (!full) {
@@ -46,7 +49,7 @@ export default function NotificationDetail() {
     return () => {
       active = false;
     };
-  }, [id, preloaded]);
+  }, [canteenId, id, preloaded]);
 
   if (loading) {
     return (
