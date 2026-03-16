@@ -59,6 +59,9 @@ export default function NotificationCenter() {
 
   const buildFilterParams = useCallback(() => {
     const params = { limit };
+    if (canteenId) {
+      params.canteenId = canteenId;
+    }
     if (selectedType) {
       params.type = selectedType;
     }
@@ -69,7 +72,7 @@ export default function NotificationCenter() {
       params.isRead = false;
     }
     return params;
-  }, [limit, selectedType, selectedStatus]);
+  }, [canteenId, limit, selectedType, selectedStatus]);
 
   const openOrderFromNotification = (orderId) => {
     if (!orderId) return false;
@@ -156,7 +159,7 @@ export default function NotificationCenter() {
       try {
         const [result, count] = await Promise.all([
           getNotificationFeed(buildFilterParams()),
-          getUnreadCount(),
+          getUnreadCount(canteenId ? { canteenId } : {}),
         ]);
 
         if (!isMounted) return;
@@ -223,7 +226,7 @@ export default function NotificationCenter() {
       lastCanteenRef.current = canteenId;
 
       try {
-        const count = await getUnreadCount();
+        const count = await getUnreadCount(canteenId ? { canteenId } : {});
         setUnreadCount(count);
       } catch (error) {
         console.error("Failed to fetch unread count:", error);
@@ -236,7 +239,7 @@ export default function NotificationCenter() {
       }
 
       try {
-        const count = await getUnreadCount();
+        const count = await getUnreadCount(canteenId ? { canteenId } : {});
         setUnreadCount(count);
       } catch(error) {
         console.error("Failed to fetch unread count:", error);
@@ -317,7 +320,7 @@ export default function NotificationCenter() {
 
   const handleMarkAllRead = async () => {
     try {
-      await markAllAsRead();
+      await markAllAsRead(canteenId ? { canteenId } : {});
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, isRead: true })),
       );
@@ -353,7 +356,7 @@ export default function NotificationCenter() {
     if (!target || target.isRead) return;
 
     try {
-      await markAsRead(target.id);
+      await markAsRead(target.id, canteenId ? { canteenId } : {});
       setNotifications((prev) =>
         prev.map((n) => (n.id === target.id ? { ...n, isRead: true } : n)),
       );
@@ -426,7 +429,7 @@ export default function NotificationCenter() {
     }
 
     try {
-      const full = await getNotificationById(notification.id);
+      const full = await getNotificationById(notification.id, canteenId ? { canteenId } : {});
       const metadata = full?.metadata || null;
 
       if (metadata) {
