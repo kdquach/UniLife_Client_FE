@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" fill="none">
+  <defs>
+    <linearGradient id="bg3" x1="120" y1="80" x2="1500" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff7043"/>
+      <stop offset="1" stop-color="#f4511e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="720" rx="40" fill="url(#bg3)"/>
+  <g opacity="0.2" fill="#fff">
+    <circle cx="1230" cy="130" r="18"/>
+    <circle cx="1350" cy="230" r="10"/>
+    <circle cx="1190" cy="330" r="12"/>
+  </g>
+  <g transform="translate(920 120)">
+    <rect x="0" y="40" width="520" height="420" rx="32" fill="#fff" fill-opacity="0.16"/>
+    <rect x="46" y="96" width="428" height="308" rx="24" fill="#fff" fill-opacity="0.24"/>
+    <rect x="86" y="136" width="348" height="228" rx="18" fill="#fff"/>
+    <rect x="126" y="176" width="268" height="56" rx="16" fill="#ff8a50"/>
+    <rect x="126" y="252" width="180" height="26" rx="13" fill="#ffd2a8"/>
+    <rect x="126" y="292" width="228" height="26" rx="13" fill="#ffd2a8"/>
+    <rect x="366" y="252" width="28" height="66" rx="14" fill="#ff8a50"/>
+  </g>
+</svg>

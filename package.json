@@ -15,6 +15,7 @@
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
+    "lucide-react": "^0.577.0",
     "otpauth": "^9.4.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",

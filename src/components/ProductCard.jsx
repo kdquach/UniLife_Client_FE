@@ -107,43 +107,40 @@ export default function ProductCard({
     <article
       onClick={() => productId && navigate(`/products/${productId}`)}
       className={clsx(
-        'group relative overflow-hidden rounded-card bg-surface p-3 shadow-card transition duration-200 cursor-pointer',
-        'hover:shadow-lift hover:scale-[1.02]'
+        'group relative cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        'hover:-translate-y-1 hover:scale-[1.03]'
       )}
     >
-      {/* Row 1: Image */}
       <div
         ref={imageWrapRef}
-        className="relative aspect-square w-full overflow-hidden rounded-card bg-slate-100"
+        className="relative h-44 w-full overflow-hidden"
       >
         {image ? (
           <img
             src={image}
             alt={name}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.06]"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.08]"
             loading="lazy"
           />
         ) : (
           <img
             src={imageNotFound}
             alt={name}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.06]"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.08]"
             loading="lazy"
           />
         )}
       </div>
 
-      {/* Rows 2–4 */}
-      <div className="grid gap-1 px-1 pb-1 pt-3">
-        <h3 className="truncate text-[15px] font-semibold text-text">{name}</h3>
-        <p className="line-clamp-2 text-sm text-muted">{description}</p>
-        <p className="truncate text-lg font-extrabold text-primary tracking-tight">
+      <div className="grid gap-1 p-4">
+        <h3 className="truncate text-sm font-semibold text-text sm:text-[15px]">{name}</h3>
+        <p className="line-clamp-2 min-h-10 text-xs text-gray-500 sm:text-sm">{description}</p>
+        <p className="truncate text-base font-bold tracking-tight text-primary sm:text-lg">
           {priceText}
         </p>
       </div>
 
-      {/* Row 5: Actions */}
-      <div className="mt-2 flex items-center gap-3 px-1 pb-1">
+      <div className="flex items-center gap-3 px-4 pb-4">
         <button
           type="button"
           onClick={(e) => {
@@ -156,15 +153,14 @@ export default function ProductCard({
             'grid h-11 w-11 place-items-center rounded-xl',
             'transform-gpu',
             'transition-all duration-200 ease-out',
-            'shadow-card overflow-hidden',
+            'overflow-hidden border border-gray-100',
             wishlisted
-              ? 'bg-primary/10 text-primary'
-              : 'bg-surfaceMuted text-muted',
-            'hover:bg-surface hover:shadow-lift hover:ring-2 hover:ring-primary/20',
+              ? 'bg-orange-50 text-orange-500'
+              : 'bg-white text-gray-500',
+            'hover:bg-orange-50 hover:ring-2 hover:ring-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/35',
             'hover:scale-[1.05] active:scale-95'
           )}
         >
-          {/* Pulse ring */}
           {wishlisted && (
             <span
               aria-hidden
@@ -176,12 +172,11 @@ export default function ProductCard({
             />
           )}
 
-          {/* Icon */}
           <span
             className={clsx(
               'relative z-10',
               'transition-transform duration-200 ease-out transition-colors',
-              wishlisted ? 'scale-110 group-hover:text-primary' : 'scale-100 group-hover:text-primary'
+              wishlisted ? 'scale-110 group-hover:text-orange-600' : 'scale-100 group-hover:text-orange-500'
             )}
           >
             <MaterialIcon
@@ -203,25 +198,21 @@ export default function ProductCard({
           onMouseLeave={onBtnLeave}
           className={clsx(
             'group flex h-11 flex-1 items-center justify-center gap-2 cursor-pointer',
-            'rounded-xl px-4 text-sm font-semibold shadow-card',
+            'rounded-xl border border-gray-100 px-4 text-sm font-semibold',
             'transition-all duration-200 ease-out',
             isAdded
-              ? 'bg-primary text-inverse'
-              : 'bg-surfaceMuted text-text hover:bg-primary hover:text-inverse',
-            'hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20',
+              ? 'bg-orange-500 text-white'
+              : 'bg-white text-text hover:bg-orange-500 hover:text-white',
+            'hover:scale-[1.02] hover:ring-2 hover:ring-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/35',
             press && 'scale-95'
           )}
         >
-          {/* CART ICON (hover) */}
           <span
             className={clsx(
               'flex items-center justify-center overflow-hidden',
               'transition-all duration-200 ease-out',
-              // idle
               ui === 'idle' && 'w-0 opacity-0 -translate-x-1',
-              // hover
               ui === 'hover' && 'w-4 opacity-100 translate-x-0',
-              // adding / added
               (ui === 'adding' || isAdded) && 'w-0 opacity-0'
             )}
           >
@@ -229,18 +220,15 @@ export default function ProductCard({
           </span>
 
           {/* TEXT */}
-          <span className="whitespace-nowrap">Đặt món ngay</span>
+          <span className="whitespace-nowrap text-xs sm:text-sm">Đặt món ngay</span>
 
           {/* CHECK ICON (active / added) */}
           <span
             className={clsx(
               'flex items-center justify-center overflow-hidden',
               'transition-all duration-200 ease-out',
-              // idle / hover
               !isAdded && ui !== 'adding' && 'w-0 opacity-0 translate-x-1',
-              // adding
               ui === 'adding' && 'w-4 opacity-100 translate-x-0',
-              // added
               isAdded && 'w-4 opacity-100 translate-x-0'
             )}
           >
