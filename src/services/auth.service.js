@@ -205,6 +205,8 @@ export async function logout() {
   } finally {
     clearAccessToken();
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("selectedCampus");
+    localStorage.removeItem("selectedCanteen");
   }
 }
 
