@@ -26,7 +26,7 @@ export default function AppHeader() {
   const [campuses, setCampuses] = useState([]);
   const [offTodayCount, setOffTodayCount] = useState(0);
 
-  const [openCampus, setOpenCampus] = useState(() => !selectedCampus);
+  const [openCampus, setOpenCampus] = useState(() => !selectedCampus || !selectedCanteen);
   const [showRequireModal, setShowRequireModal] = useState(false);
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
