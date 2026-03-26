@@ -8,7 +8,7 @@ import MaterialIcon from '@/components/MaterialIcon.jsx';
 import { money } from '@/utils/currency';
 import { formatDate } from '@/utils/formatDate';
 import PickupQRCode from '@/components/order/PickupQRCode.jsx';
-import { reOrder } from '@/services/order.service.js';
+import { cancelOrder, reOrder } from '@/services/order.service.js';
 import {
   createFeedback,
   getAllFeedbacks,
@@ -54,6 +54,9 @@ export default function RightOrderDetailPanel({
   const [reordering, setReordering] = useState(false);
   const [reorderResult, setReorderResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
+
+  // Cancel order state
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   // Feedback states
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -216,6 +219,68 @@ export default function RightOrderDetailPanel({
   const canteenName = order?.canteenId?.name || 'Canteen không xác định';
   const canteenLocation = order?.canteenId?.location || '';
 
+  const cancellation = useMemo(() => {
+    if (!order) return { show: false, canCancel: false };
+    if (order.status !== 'pending') return { show: false, canCancel: false };
+    return { show: true, canCancel: true };
+  }, [order]);
+
+  const handleCancelOrder = async () => {
+    if (!order?._id) return;
+    if (cancelSubmitting) return;
+
+    const wasPaid =
+      order.payment?.status === 'completed' || order.payment?.status === 'paid';
+
+    Modal.confirm({
+      title: 'Xác nhận hủy đơn hàng',
+      content: wasPaid
+        ? 'Đơn đã thanh toán sẽ được hoàn tiền vào ví UniLife.'
+        : 'Bạn chắc chắn muốn hủy đơn hàng này?',
+      okText: 'Hủy đơn',
+      okButtonProps: { danger: true },
+      cancelText: 'Đóng',
+      centered: true,
+      onOk: async () => {
+        setCancelSubmitting(true);
+        try {
+          const res = await cancelOrder(order._id);
+          const updatedOrder = res?.data?.order;
+          const updatedUser = res?.data?.user;
+
+          if (updatedUser) {
+            try {
+              localStorage.setItem('unilife_user', JSON.stringify(updatedUser));
+              window.dispatchEvent(
+                new CustomEvent('userUpdated', { detail: updatedUser }),
+              );
+            } catch {
+              // ignore storage/event errors
+            }
+          }
+
+          if (updatedOrder) {
+            panel.openOrderDetail(updatedOrder);
+          }
+
+          toast.success('Đã hủy đơn hàng', {
+            description: updatedUser
+              ? 'Số dư ví đã được cập nhật.'
+              : 'Đơn hàng đã chuyển sang trạng thái đã hủy.',
+          });
+        } catch (error) {
+          const message =
+            error?.response?.data?.message ||
+            error?.message ||
+            'Không thể hủy đơn hàng';
+          toast.error('Hủy đơn thất bại', { description: message });
+        } finally {
+          setCancelSubmitting(false);
+        }
+      },
+    });
+  };
+
   return (
     <div className={clsx('flex h-full flex-col bg-white', className)}>
       {/* Header */}
@@ -244,7 +309,7 @@ export default function RightOrderDetailPanel({
             className={clsx(
               'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border',
               STATUS_STYLES[order.status] ||
-                'bg-gray-100 text-gray-600 border-gray-200'
+              'bg-gray-100 text-gray-600 border-gray-200'
             )}
           >
             {STATUS_LABELS[order.status] || order.status}
@@ -388,7 +453,7 @@ export default function RightOrderDetailPanel({
                     )}
                   >
                     {order.payment.status === 'completed' ||
-                    order.payment.status === 'paid'
+                      order.payment.status === 'paid'
                       ? 'Đã thanh toán'
                       : 'Chờ thanh toán'}
                   </span>
@@ -437,12 +502,12 @@ export default function RightOrderDetailPanel({
               order.status === 'confirmed' ||
               order.status === 'preparing' ||
               order.status === 'ready') && (
-              <PickupQRCode
-                orderId={order._id}
-                pickupCode={order.pickupQRCode?.code || order.orderNumber}
-                size={140}
-              />
-            )}
+                <PickupQRCode
+                  orderId={order._id}
+                  pickupCode={order.pickupQRCode?.code || order.orderNumber}
+                  size={140}
+                />
+              )}
           </div>
         )}
       </div>
@@ -481,6 +546,40 @@ export default function RightOrderDetailPanel({
             </button>
           </div>
         )}
+
+      {/* Footer - Cancel button (pending orders) */}
+      {order && cancellation.show && (
+        <div className="bg-surface border-t border-divider px-5 py-4">
+          <button
+            type="button"
+            disabled={cancelSubmitting || !cancellation.canCancel}
+            className={clsx(
+              'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-inverse bg-danger shadow-card transition duration-200',
+              cancelSubmitting || !cancellation.canCancel
+                ? 'opacity-70 cursor-not-allowed'
+                : 'hover:bg-danger/90 hover:shadow-lift active:scale-[0.98]'
+            )}
+            onClick={handleCancelOrder}
+          >
+            {cancelSubmitting ? (
+              <>
+                <span className="animate-spin">
+                  <MaterialIcon
+                    name="progress_activity"
+                    className="text-[18px]"
+                  />
+                </span>
+                Đang hủy...
+              </>
+            ) : (
+              <>
+                <MaterialIcon name="cancel" className="text-[18px]" />
+                Hủy đơn hàng
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Re-order Result Modal */}
       <Modal
@@ -567,7 +666,7 @@ export default function RightOrderDetailPanel({
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className="w-12 h-12 rounded-card bg-surfaceMuted flex items-center justify-center overflow-hidden shrink-0">
                 {selectedProduct.image &&
-                selectedProduct.image !== 'default.jpg' ? (
+                  selectedProduct.image !== 'default.jpg' ? (
                   <img
                     src={selectedProduct.image}
                     alt={selectedProduct.productName}
@@ -606,11 +705,10 @@ export default function RightOrderDetailPanel({
                     <MaterialIcon
                       name="star"
                       filled
-                      className={`text-[28px] ${
-                        feedbackForm.rating >= star
+                      className={`text-[28px] ${feedbackForm.rating >= star
                           ? 'text-warning'
                           : 'text-warning/25 hover:text-warning/50'
-                      } transition`}
+                        } transition`}
                     />
                   </button>
                 ))}

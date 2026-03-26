@@ -4,39 +4,42 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import imageNotFound from "@/assets/images/image-not-found.png";
 import { logout as logoutService, getCurrentUser } from "@/services/auth.service";
+import { money } from "@/utils/currency";
 
 export default function ProfileCluster({ isAuthenticated, user }) {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(user);
-
-  // Update when prop changes
-  useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, [user?.avatar, user?.fullName, user?.name, user?._id]);
+  const [overrideUser, setOverrideUser] = useState(null);
+  const currentUser = overrideUser ?? user;
 
   // Listen for avatar updates from Profile page
   useEffect(() => {
-    const handleUserAvatarUpdate = (event) => {
+    const handleUserUpdate = (event) => {
       if (event.detail) {
-        setCurrentUser(event.detail);
+        setOverrideUser(event.detail);
       }
     };
 
-    window.addEventListener('userAvatarUpdated', handleUserAvatarUpdate);
-    return () => window.removeEventListener('userAvatarUpdated', handleUserAvatarUpdate);
+    window.addEventListener('userAvatarUpdated', handleUserUpdate);
+    window.addEventListener('userUpdated', handleUserUpdate);
+    return () => {
+      window.removeEventListener('userAvatarUpdated', handleUserUpdate);
+      window.removeEventListener('userUpdated', handleUserUpdate);
+    };
   }, []);
 
   // Fallback: Refresh user data from localStorage occasionally
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     const refreshUser = () => {
       try {
         const freshUser = getCurrentUser();
-        if (freshUser && freshUser.avatar !== currentUser?.avatar) {
-          setCurrentUser(freshUser);
+        if (
+          freshUser &&
+          (freshUser.avatar !== currentUser?.avatar ||
+            Number(freshUser.balance || 0) !== Number(currentUser?.balance || 0))
+        ) {
+          setOverrideUser(freshUser);
         }
       } catch (err) {
         console.error('Failed to refresh user:', err);
@@ -46,7 +49,7 @@ export default function ProfileCluster({ isAuthenticated, user }) {
     // Check every 3 seconds for avatar updates (fallback)
     const interval = setInterval(refreshUser, 3000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, currentUser?.avatar]);
+  }, [isAuthenticated, currentUser?.avatar, currentUser?.balance]);
 
   const handleLogout = async () => {
     try {
@@ -145,8 +148,13 @@ export default function ProfileCluster({ isAuthenticated, user }) {
         </span>
 
         {/* Username */}
-        <span className="hidden sm:block text-sm font-semibold">
-          {currentUser?.fullName ?? currentUser?.name ?? "Unilife User"}
+        <span className="hidden sm:flex flex-col items-start leading-tight">
+          <span className="text-sm font-semibold">
+            {currentUser?.fullName ?? currentUser?.name ?? "Unilife User"}
+          </span>
+          <span className="text-[11px] font-semibold text-muted">
+            {money(currentUser?.balance || 0)}
+          </span>
         </span>
       </button>
     </Dropdown>
