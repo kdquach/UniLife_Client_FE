@@ -15,6 +15,8 @@ import EmptyState from '@/components/EmptyState.jsx';
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 import ResetLink from '../../components/menu/ResetLink';
 
+const ORDERABLE_STATUSES = ['available', 'unavailable'];
+
 function Chip({ active, children, onClick }) {
   return (
     <button
@@ -82,11 +84,13 @@ export default function MenuPage() {
   const normalizedSearch = querySearch.toLowerCase();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveTab(queryTab === 'daily' ? 'daily' : 'food');
   }, [queryTab]);
 
   // Reset filter khi đổi canteen
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveCategoryId(null);
     setSortOption('');
   }, [selectedCanteen?.id, activeTab]);
@@ -103,7 +107,6 @@ export default function MenuPage() {
 
     const params = {
       limit: 100,
-      status: 'available',
     };
 
     if (selectedCanteen?.id) {
@@ -142,6 +145,12 @@ export default function MenuPage() {
   const items = useMemo(() => {
     let result = Array.isArray(baseItems) ? [...baseItems] : [];
 
+    if (activeTab === 'food') {
+      result = result.filter((item) =>
+        ORDERABLE_STATUSES.includes(String(item?.status || '').toLowerCase())
+      );
+    }
+
     if (normalizedSearch) {
       result = result.filter((item) => {
         const name = String(item?.name || '').toLowerCase();
@@ -177,7 +186,7 @@ export default function MenuPage() {
     }
 
     return result;
-  }, [activeCategoryId, baseItems, normalizedSearch, sortOption]);
+  }, [activeCategoryId, activeTab, baseItems, normalizedSearch, sortOption]);
 
   const categoryOptions = useMemo(() => {
     const map = new Map(); // id → name
@@ -251,7 +260,7 @@ export default function MenuPage() {
                   fetchDailyByCanteen(selectedCanteen.id);
                   return;
                 }
-                fetchAll({ limit: 100, status: 'available' });
+                fetchAll({ limit: 100 });
               }}
               className="mt-3 rounded bg-danger px-4 py-2 text-inverse hover:bg-danger/90"
             >
