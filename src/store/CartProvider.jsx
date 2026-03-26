@@ -99,7 +99,9 @@ export function CartProvider({ children }) {
 
         if (found) {
           return prev.map((l) =>
-            l.productId === productId ? { ...l, quantity: l.quantity + qty } : l
+            l.productId._id === productId
+              ? { ...l, quantity: l.quantity + qty }
+              : l
           );
         }
         return [
