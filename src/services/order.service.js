@@ -66,3 +66,13 @@ export async function reOrder(orderId, currentCanteenId) {
   });
   return response.data;
 }
+
+/**
+ * Cancel an order (customer)
+ * @param {string} orderId - Order ID
+ * @returns {Promise<Object>} - { status, data: { order, user }, message }
+ */
+export async function cancelOrder(orderId) {
+  const response = await api.patch(`/orders/${orderId}/cancel`);
+  return response.data;
+}

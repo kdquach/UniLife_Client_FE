@@ -156,17 +156,16 @@ export function CartProvider({ children }) {
 
       try {
         const current = lines.find((l) => l.productId._id === productId);
-        await updateCartItemQuantity(
-          productId,
-          current.quantity + 1,
-          canteenId
-        );
-      } catch {
+        await updateCartItemQuantity(productId, current.quantity + 1, canteenId);
+      } catch (err) {
         reloadCart();
+        const message =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Cập nhật số lượng thất bại";
+        toast.error("Không thể tăng số lượng", { description: message });
       }
-    },
-    [lines, reloadCart, canteenId]
-  );
+    }, [lines, reloadCart, canteenId]);
 
   /**
    * ===============================
@@ -188,17 +187,16 @@ export function CartProvider({ children }) {
 
       try {
         const current = lines.find((l) => l.productId._id === productId);
-        await updateCartItemQuantity(
-          productId,
-          current.quantity - 1,
-          canteenId
-        );
-      } catch {
+        await updateCartItemQuantity(productId, current.quantity - 1, canteenId);
+      } catch (err) {
         reloadCart();
+        const message =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Cập nhật số lượng thất bại";
+        toast.error("Không thể giảm số lượng", { description: message });
       }
-    },
-    [lines, reloadCart, canteenId]
-  );
+    }, [lines, reloadCart, canteenId]);
 
   /**
    * ===============================
@@ -216,9 +214,7 @@ export function CartProvider({ children }) {
       } catch {
         setLines(backup);
       }
-    },
-    [lines, canteenId]
-  );
+    }, [lines, canteenId]);
 
   const clearCart = useCallback(async () => {
     try {

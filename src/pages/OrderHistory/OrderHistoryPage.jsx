@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getMyOrders, getOrderById } from "@/services/order.service";
+import { getMyOrders, getOrderById, cancelOrder } from "@/services/order.service";
 import OrderTabs from "@/components/orderHistory/OrderTabs";
 import Loader from "@/components/Loader";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -8,6 +8,8 @@ import { money } from "@/utils/currency";
 import { formatDate } from "@/utils/formatDate";
 import EmptyState from "@/components/EmptyState";
 import { useRightPanel } from "@/store/useRightPanel";
+import { Modal } from "antd";
+import { toast } from "sonner";
 
 // Mapping màu sắc badge trạng thái
 const STATUS_STYLES = {
@@ -32,6 +34,7 @@ export default function OrderHistoryPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [cancelingId, setCancelingId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -73,6 +76,65 @@ export default function OrderHistoryPage() {
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, pagination.page]);
+
+  const getCancellationInfo = (order) => {
+    const canCancel = order?.status === 'pending';
+    return { show: canCancel, canCancel };
+  };
+
+  const handleCancel = (e, order) => {
+    e.stopPropagation();
+    if (!order?._id) return;
+
+    const wasPaid =
+      order.payment?.status === 'completed' || order.payment?.status === 'paid';
+
+    Modal.confirm({
+      title: 'Xác nhận hủy đơn hàng',
+      content: wasPaid
+        ? 'Đơn đã thanh toán sẽ được hoàn tiền vào ví UniLife.'
+        : 'Bạn chắc chắn muốn hủy đơn hàng này?',
+      okText: 'Hủy đơn',
+      okButtonProps: { danger: true },
+      cancelText: 'Đóng',
+      centered: true,
+      onOk: async () => {
+        setCancelingId(order._id);
+        try {
+          const res = await cancelOrder(order._id);
+          const updatedUser = res?.data?.user;
+
+          if (updatedUser) {
+            try {
+              localStorage.setItem('unilife_user', JSON.stringify(updatedUser));
+              window.dispatchEvent(
+                new CustomEvent('userUpdated', { detail: updatedUser }),
+              );
+            } catch {
+              // ignore
+            }
+          }
+
+          toast.success('Đã hủy đơn hàng', {
+            description: updatedUser
+              ? 'Số dư ví đã được cập nhật.'
+              : 'Đơn hàng đã chuyển sang trạng thái đã hủy.',
+          });
+
+          await fetchOrders();
+        } catch (error) {
+          toast.error('Hủy đơn thất bại', {
+            description:
+              error?.response?.data?.message ||
+              error?.message ||
+              'Không thể hủy đơn hàng',
+          });
+        } finally {
+          setCancelingId(null);
+        }
+      },
+    });
+  };
 
   useEffect(() => {
     const selectedOrderId = location.state?.orderId;
@@ -213,9 +275,33 @@ export default function OrderHistoryPage() {
 
               {/* Card Footer: Total & Date */}
               <div className="flex justify-between items-end mt-2 pt-2">
-                <span className="text-xs text-muted font-medium">
-                  {formatDate(order.createdAt)}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted font-medium">
+                    {formatDate(order.createdAt)}
+                  </span>
+
+                  {(() => {
+                    const info = getCancellationInfo(order);
+                    if (!info.show) return null;
+
+                    return (
+                      <button
+                        type="button"
+                        disabled={cancelingId === order._id || !info.canCancel}
+                        onClick={(e) => handleCancel(e, order)}
+                        className={
+                          "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-semibold bg-danger/10 text-danger hover:bg-danger/15 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                        }
+                        title="Hủy đơn hàng"
+                      >
+                        <MaterialIcon name="cancel" size={16} />
+                        {cancelingId === order._id
+                          ? "Đang hủy..."
+                          : "Hủy đơn"}
+                      </button>
+                    );
+                  })()}
+                </div>
                 <div className="text-right">
                   <p className="text-xs text-muted mb-0.5">Tổng tiền</p>
                   <span className="font-bold text-primary text-base">

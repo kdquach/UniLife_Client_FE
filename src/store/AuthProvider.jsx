@@ -43,6 +43,21 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleUserUpdated = (event) => {
+      if (!event?.detail) return;
+      try {
+        localStorage.setItem('unilife_user', JSON.stringify(event.detail));
+      } catch {
+        // ignore
+      }
+      setUser(event.detail);
+    };
+
+    window.addEventListener('userUpdated', handleUserUpdated);
+    return () => window.removeEventListener('userUpdated', handleUserUpdated);
+  }, []);
+
   const value = useMemo(
     () => ({
       token,
