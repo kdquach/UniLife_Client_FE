@@ -5,6 +5,7 @@ import { Dropdown } from 'antd';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
+import { useDailyMenu } from '@/hooks/useDailyMenu.js';
 import { useCampusStore } from '@/store/useCampusStore';
 import { useWishlist } from '@/hooks/useWishlist.js';
 import ProductCard from '@/components/ProductCard.jsx';
@@ -52,65 +53,128 @@ export default function MenuPage() {
   const isOverflow = useHorizontalOverflow(categoryRef);
 
   const { products, loading, error, fetchByCanteen, fetchAll } = useProduct();
+  const {
+    products: dailyProducts,
+    loading: loadingDaily,
+    error: errorDaily,
+    fetchByCanteen: fetchDailyByCanteen,
+    reset: resetDaily,
+  } = useDailyMenu();
   const { selectedCanteen } = useCampusStore();
 
   const [activeCategoryId, setActiveCategoryId] = useState(null); // null = All
   const [sortOption, setSortOption] = useState('');
   const isDefaultFilter = !activeCategoryId && !sortOption;
   const [searchParams] = useSearchParams();
-  const { ids: wishlistIds, fetch: fetchWishlist, toggle: toggleWishlist } = useWishlist();
+  const [activeTab, setActiveTab] = useState(() =>
+    searchParams.get('tab') === 'daily' ? 'daily' : 'food'
+  );
+  const {
+    ids: wishlistIds,
+    fetch: fetchWishlist,
+    toggle: toggleWishlist,
+  } = useWishlist();
+
+  const queryTab = searchParams.get('tab');
+  const querySearch = searchParams.get('search')?.trim() || '';
+  const normalizedSearch = querySearch.toLowerCase();
+
+  useEffect(() => {
+    setActiveTab(queryTab === 'daily' ? 'daily' : 'food');
+  }, [queryTab]);
 
   // Reset filter khi đổi canteen
   useEffect(() => {
     setActiveCategoryId(null);
     setSortOption('');
-  }, [selectedCanteen?.id]);
+  }, [selectedCanteen?.id, activeTab]);
 
   useEffect(() => {
+    if (activeTab === 'daily') {
+      if (selectedCanteen?.id) {
+        fetchDailyByCanteen(selectedCanteen.id).catch(() => {});
+      } else {
+        resetDaily();
+      }
+      return;
+    }
+
     const params = {
       limit: 100,
       status: 'available',
     };
 
-    // Search
-    const search = searchParams.get('search');
-    if (search?.trim()) {
-      params.search = search.trim();
-    }
-
-    // Category filter (dùng categoryId)
-    if (activeCategoryId) {
-      params.categoryId = activeCategoryId;
-    }
-
-    // Sort
-    if (sortOption) {
-      const map = {
-        'name-asc': 'name',
-        'name-desc': '-name',
-        'price-asc': 'price',
-        'price-desc': '-price',
-      };
-      params.sort = map[sortOption];
-    }
-
     if (selectedCanteen?.id) {
-      fetchByCanteen(selectedCanteen.id, params);   // ✅ Truyền đầy đủ params
+      fetchByCanteen(selectedCanteen.id, params);
     } else {
       fetchAll(params);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCanteen?.id, activeCategoryId, sortOption, searchParams, fetchByCanteen, fetchAll]);
+  }, [
+    activeTab,
+    selectedCanteen?.id,
+    fetchByCanteen,
+    fetchAll,
+    fetchDailyByCanteen,
+    resetDaily,
+  ]);
 
   // Fetch wishlist
   useEffect(() => {
-    fetchWishlist().catch((err) => console.warn('Wishlist not loaded:', err?.message));
+    fetchWishlist().catch((err) =>
+      console.warn('Wishlist not loaded:', err?.message)
+    );
   }, [fetchWishlist]);
 
   // Build category list with id
+  const baseItems = useMemo(
+    () => (activeTab === 'daily' ? dailyProducts : products),
+    [activeTab, dailyProducts, products]
+  );
+
+  const items = useMemo(() => {
+    let result = Array.isArray(baseItems) ? [...baseItems] : [];
+
+    if (normalizedSearch) {
+      result = result.filter((item) => {
+        const name = String(item?.name || '').toLowerCase();
+        const description = String(item?.description || '').toLowerCase();
+        return (
+          name.includes(normalizedSearch) ||
+          description.includes(normalizedSearch)
+        );
+      });
+    }
+
+    if (activeCategoryId) {
+      result = result.filter((item) => {
+        const categoryId = item?.categoryId?._id || item?.categoryId;
+        return String(categoryId || '') === String(activeCategoryId);
+      });
+    }
+
+    if (sortOption) {
+      const sorterMap = {
+        'name-asc': (a, b) =>
+          String(a?.name || '').localeCompare(String(b?.name || '')),
+        'name-desc': (a, b) =>
+          String(b?.name || '').localeCompare(String(a?.name || '')),
+        'price-asc': (a, b) => Number(a?.price || 0) - Number(b?.price || 0),
+        'price-desc': (a, b) => Number(b?.price || 0) - Number(a?.price || 0),
+      };
+
+      const sorter = sorterMap[sortOption];
+      if (sorter) {
+        result.sort(sorter);
+      }
+    }
+
+    return result;
+  }, [activeCategoryId, baseItems, normalizedSearch, sortOption]);
+
   const categoryOptions = useMemo(() => {
     const map = new Map(); // id → name
-    products.forEach((p) => {
+    baseItems.forEach((p) => {
       const cat = p.categoryId;
       if (cat?._id && cat.name) {
         map.set(cat._id.toString(), cat.name);
@@ -122,30 +186,66 @@ export default function MenuPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return [{ id: null, name: 'All' }, ...options];
-  }, [products]);
+  }, [baseItems]);
 
-  const items = products;
+  const currentLoading = activeTab === 'daily' ? loadingDaily : loading;
+  const currentError = activeTab === 'daily' ? errorDaily : error;
 
   return (
     <div className="grid gap-6">
       <section className="grid min-w-0 gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text">Menu</h1>
-          <p className="text-sm text-muted">Choose from our delicious selection</p>
+          <p className="text-sm text-muted">
+            Choose from our delicious selection
+          </p>
         </div>
 
-        {loading && (
+        <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white p-1 shadow-card">
+          <button
+            type="button"
+            onClick={() => setActiveTab('food')}
+            className={clsx(
+              'rounded-full px-4 py-2 text-sm font-medium transition',
+              activeTab === 'food'
+                ? 'bg-primary text-inverse shadow-lift'
+                : 'text-muted hover:text-text'
+            )}
+          >
+            Menu Food
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('daily')}
+            className={clsx(
+              'rounded-full px-4 py-2 text-sm font-medium transition',
+              activeTab === 'daily'
+                ? 'bg-primary text-inverse shadow-lift'
+                : 'text-muted hover:text-text'
+            )}
+          >
+            Menu theo ngày
+          </button>
+        </div>
+
+        {currentLoading && (
           <div className="flex justify-center py-12">
             <Loader />
           </div>
         )}
 
-        {error && !loading && (
+        {currentError && !currentLoading && (
           <div className="rounded-lg bg-danger/10 p-4 text-danger">
             <p className="font-medium">Failed to load menu</p>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">{currentError}</p>
             <button
-              onClick={() => fetchAll({ limit: 100, status: 'available' })}
+              onClick={() => {
+                if (activeTab === 'daily' && selectedCanteen?.id) {
+                  fetchDailyByCanteen(selectedCanteen.id);
+                  return;
+                }
+                fetchAll({ limit: 100, status: 'available' });
+              }}
               className="mt-3 rounded bg-danger px-4 py-2 text-inverse hover:bg-danger/90"
             >
               Retry
@@ -153,21 +253,29 @@ export default function MenuPage() {
           </div>
         )}
 
-        {!loading && (
+        {!currentLoading && (
           <>
             <div className="flex w-full items-center justify-between gap-4 flex-wrap">
               {/* Category chips */}
               <div className="relative min-w-0 flex-1">
                 {isOverflow && (
                   <button
-                    onClick={() => categoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+                    onClick={() =>
+                      categoryRef.current?.scrollBy({
+                        left: -200,
+                        behavior: 'smooth',
+                      })
+                    }
                     className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
                   >
                     ‹
                   </button>
                 )}
 
-                <div ref={categoryRef} className="flex gap-2 overflow-x-auto scrollbar-hide">
+                <div
+                  ref={categoryRef}
+                  className="flex gap-2 overflow-x-auto scrollbar-hide"
+                >
                   {categoryOptions.map((cat) => (
                     <Chip
                       key={cat.id ?? 'all'}
@@ -181,7 +289,12 @@ export default function MenuPage() {
 
                 {isOverflow && (
                   <button
-                    onClick={() => categoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+                    onClick={() =>
+                      categoryRef.current?.scrollBy({
+                        left: 200,
+                        behavior: 'smooth',
+                      })
+                    }
                     className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
                   >
                     ›
@@ -217,12 +330,20 @@ export default function MenuPage() {
                     className="flex items-center gap-2 rounded-card bg-surface px-4 py-2 shadow-card transition-all hover:shadow-lift min-w-40"
                   >
                     <span className="text-sm font-medium text-text flex-1 text-left">
-                      {sortOption === 'name-asc' ? 'Tên A → Z' : 
-                       sortOption === 'name-desc' ? 'Tên Z → A' :
-                       sortOption === 'price-desc' ? 'Giá cao → thấp' :
-                       sortOption === 'price-asc' ? 'Giá thấp → cao' : 'Mặc định'}
+                      {sortOption === 'name-asc'
+                        ? 'Tên A → Z'
+                        : sortOption === 'name-desc'
+                          ? 'Tên Z → A'
+                          : sortOption === 'price-desc'
+                            ? 'Giá cao → thấp'
+                            : sortOption === 'price-asc'
+                              ? 'Giá thấp → cao'
+                              : 'Mặc định'}
                     </span>
-                    <MaterialIcon name="expand_more" className="text-[18px] text-muted" />
+                    <MaterialIcon
+                      name="expand_more"
+                      className="text-[18px] text-muted"
+                    />
                   </button>
                 </Dropdown>
               </div>
@@ -230,8 +351,16 @@ export default function MenuPage() {
 
             {items.length === 0 ? (
               <EmptyState
-                title="No items available"
-                description="No products found for the selected category"
+                title={
+                  activeTab === 'daily'
+                    ? 'Không có món trong menu ngày'
+                    : 'No items available'
+                }
+                description={
+                  activeTab === 'daily'
+                    ? 'Hiện chưa có menu theo ngày hoặc không có món phù hợp bộ lọc.'
+                    : 'No products found for the selected category'
+                }
               />
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
