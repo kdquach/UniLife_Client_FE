@@ -27,15 +27,26 @@ export const useDailyMenu = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   const fetchByCanteen = useCallback(async (canteenId) => {
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     try {
       const result = await getCurrentMenuByCanteen(canteenId);
       const schedule = result?.data || null;
-      setProducts(mapScheduleToProducts(schedule));
+      const mappedProducts = mapScheduleToProducts(schedule);
+      const hasMenu = Boolean(schedule?.menuId);
+
+      if (!hasMenu) {
+        setNotice('Hiện chưa có menu theo ngày cho căng tin này.');
+      } else if (mappedProducts.length === 0) {
+        setNotice('Menu theo ngày hiện chưa có món khả dụng.');
+      }
+
+      setProducts(mappedProducts);
       return result;
     } catch (err) {
       const errorMessage =
@@ -43,6 +54,7 @@ export const useDailyMenu = () => {
         err?.message ||
         'Khong the tai menu theo ngay';
       setError(errorMessage);
+      setNotice(null);
       setProducts([]);
       throw err;
     } finally {
@@ -53,12 +65,14 @@ export const useDailyMenu = () => {
   const reset = useCallback(() => {
     setProducts([]);
     setError(null);
+    setNotice(null);
   }, []);
 
   return {
     products,
     loading,
     error,
+    notice,
     fetchByCanteen,
     reset,
   };
