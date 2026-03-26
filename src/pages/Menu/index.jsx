@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dropdown } from 'antd';
+import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
@@ -13,6 +14,8 @@ import Loader from '@/components/Loader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import MaterialIcon from '@/components/MaterialIcon.jsx';
 import ResetLink from '../../components/menu/ResetLink';
+
+const ORDERABLE_STATUSES = ['available', 'unavailable'];
 
 function Chip({ active, children, onClick }) {
   return (
@@ -57,6 +60,7 @@ export default function MenuPage() {
     products: dailyProducts,
     loading: loadingDaily,
     error: errorDaily,
+    notice: noticeDaily,
     fetchByCanteen: fetchDailyByCanteen,
     reset: resetDaily,
   } = useDailyMenu();
@@ -80,11 +84,13 @@ export default function MenuPage() {
   const normalizedSearch = querySearch.toLowerCase();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveTab(queryTab === 'daily' ? 'daily' : 'food');
   }, [queryTab]);
 
   // Reset filter khi đổi canteen
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveCategoryId(null);
     setSortOption('');
   }, [selectedCanteen?.id, activeTab]);
@@ -101,7 +107,6 @@ export default function MenuPage() {
 
     const params = {
       limit: 100,
-      status: 'available',
     };
 
     if (selectedCanteen?.id) {
@@ -109,7 +114,6 @@ export default function MenuPage() {
     } else {
       fetchAll(params);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeTab,
     selectedCanteen?.id,
@@ -126,6 +130,12 @@ export default function MenuPage() {
     );
   }, [fetchWishlist]);
 
+  useEffect(() => {
+    if (activeTab === 'daily' && noticeDaily && !loadingDaily && !errorDaily) {
+      toast.info(noticeDaily);
+    }
+  }, [activeTab, noticeDaily, loadingDaily, errorDaily]);
+
   // Build category list with id
   const baseItems = useMemo(
     () => (activeTab === 'daily' ? dailyProducts : products),
@@ -134,6 +144,12 @@ export default function MenuPage() {
 
   const items = useMemo(() => {
     let result = Array.isArray(baseItems) ? [...baseItems] : [];
+
+    if (activeTab === 'food') {
+      result = result.filter((item) =>
+        ORDERABLE_STATUSES.includes(String(item?.status || '').toLowerCase())
+      );
+    }
 
     if (normalizedSearch) {
       result = result.filter((item) => {
@@ -170,7 +186,7 @@ export default function MenuPage() {
     }
 
     return result;
-  }, [activeCategoryId, baseItems, normalizedSearch, sortOption]);
+  }, [activeCategoryId, activeTab, baseItems, normalizedSearch, sortOption]);
 
   const categoryOptions = useMemo(() => {
     const map = new Map(); // id → name
@@ -244,7 +260,7 @@ export default function MenuPage() {
                   fetchDailyByCanteen(selectedCanteen.id);
                   return;
                 }
-                fetchAll({ limit: 100, status: 'available' });
+                fetchAll({ limit: 100 });
               }}
               className="mt-3 rounded bg-danger px-4 py-2 text-inverse hover:bg-danger/90"
             >
@@ -252,6 +268,16 @@ export default function MenuPage() {
             </button>
           </div>
         )}
+
+        {activeTab === 'daily' &&
+          noticeDaily &&
+          !currentError &&
+          !currentLoading && (
+            <div className="rounded-lg border border-info/30 bg-info/10 p-4 text-info">
+              <p className="font-medium">Thông báo menu theo ngày</p>
+              <p className="text-sm">{noticeDaily}</p>
+            </div>
+          )}
 
         {!currentLoading && (
           <>

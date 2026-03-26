@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { CartContext } from "./cart.context";
-import { MENU_ITEMS } from "@/pages/Menu/menu.data";
-import { useCampusStore } from "@/store/useCampusStore";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { CartContext } from './cart.context';
+import { useCampusStore } from '@/store/useCampusStore';
 // Import API cart
 import {
   getCart,
@@ -10,7 +9,7 @@ import {
   updateCartItemQuantity,
   deleteCartItem,
   clearCart as apiClearCart,
-} from "@/services/cart.service";
+} from '@/services/cart.service';
 
 export function CartProvider({ children }) {
   const { selectedCanteen } = useCampusStore();
@@ -18,7 +17,7 @@ export function CartProvider({ children }) {
   const [lines, setLines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [canteenId, setCanteenId] = useState("");
+  const [canteenId, setCanteenId] = useState('');
 
   /**
    * ===============================
@@ -31,24 +30,25 @@ export function CartProvider({ children }) {
     async function loadCart() {
       setLoading(true);
       try {
-        const res = await getCart(selectedCanteen?.id || canteenId)
+        const res = await getCart(selectedCanteen?.id || canteenId);
         if (mounted) {
-          setCanteenId(res.data.cart?.canteenId?._id || selectedCanteen?.id || '')
-          setLines(res.data.cart?.items || [])
+          setCanteenId(
+            res.data.cart?.canteenId?._id || selectedCanteen?.id || ''
+          );
+          setLines(res.data.cart?.items || []);
         }
       } catch (error) {
-        setError(error)
-        setLines([])
+        setError(error);
+        setLines([]);
       } finally {
         setLoading(false);
       }
     }
     loadCart();
     return () => {
-      mounted = false
-    }
-  }, [selectedCanteen?.id])
-
+      mounted = false;
+    };
+  }, [selectedCanteen?.id]);
 
   /**
    * Hàm reload cart (dùng khi rollback)
@@ -57,10 +57,10 @@ export function CartProvider({ children }) {
   const reloadCart = useCallback(async () => {
     try {
       const res = await getCart(selectedCanteen?.id || canteenId);
-      setCanteenId(res.data.cart?.canteenId?._id || selectedCanteen?.id || '')
+      setCanteenId(res.data.cart?.canteenId?._id || selectedCanteen?.id || '');
       setLines(res.data.cart?.items || []);
     } catch (err) {
-      console.error("Reload cart failed", err);
+      console.error('Reload cart failed', err);
     }
   }, [selectedCanteen?.id, canteenId]);
 
@@ -99,9 +99,7 @@ export function CartProvider({ children }) {
 
         if (found) {
           return prev.map((l) =>
-            l.productId === productId
-              ? { ...l, quantity: l.quantity + qty }
-              : l,
+            l.productId === productId ? { ...l, quantity: l.quantity + qty } : l
           );
         }
         return [
@@ -119,8 +117,8 @@ export function CartProvider({ children }) {
         // đồng bộ lại cho chắc
         setCanteenId(res.data.cart.canteenId._id);
         setLines(res.data.cart.items);
-        toast.success("Đã thêm vào giỏ hàng", {
-          description: "Món ăn đã được thêm thành công.",
+        toast.success('Đã thêm vào giỏ hàng', {
+          description: 'Món ăn đã được thêm thành công.',
         });
       } catch (err) {
         // 3. Nếu lỗi → rollback
@@ -128,19 +126,19 @@ export function CartProvider({ children }) {
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          "Thêm vào giỏ thất bại";
+          'Thêm vào giỏ thất bại';
         // Trường hợp khác canteen từ BE
-        if (message.toLowerCase().includes("different canteens")) {
-          toast.error("Không thể thêm vào giỏ", {
+        if (message.toLowerCase().includes('different canteens')) {
+          toast.error('Không thể thêm vào giỏ', {
             description:
-              "Sản phẩm thuộc căng tin khác. Vui lòng xóa giỏ hiện tại trước khi thêm.",
+              'Sản phẩm thuộc căng tin khác. Vui lòng xóa giỏ hiện tại trước khi thêm.',
           });
         } else {
-          toast.error("Thêm vào giỏ thất bại", { description: message });
+          toast.error('Thêm vào giỏ thất bại', { description: message });
         }
       }
     },
-    [reloadCart],
+    [reloadCart]
   );
 
   /**
@@ -152,10 +150,8 @@ export function CartProvider({ children }) {
     async (productId) => {
       setLines((prev) =>
         prev.map((l) =>
-          l.productId._id === productId
-            ? { ...l, quantity: l.quantity + 1 }
-            : l,
-        ),
+          l.productId._id === productId ? { ...l, quantity: l.quantity + 1 } : l
+        )
       );
 
       try {
@@ -184,9 +180,9 @@ export function CartProvider({ children }) {
             .map((l) =>
               l.productId._id === productId
                 ? { ...l, quantity: l.quantity - 1 }
-                : l,
+                : l
             )
-            .filter((l) => l.quantity > 0), // nếu =0 thì xóa
+            .filter((l) => l.quantity > 0) // nếu =0 thì xóa
       );
 
       try {
@@ -222,11 +218,11 @@ export function CartProvider({ children }) {
 
   const clearCart = useCallback(async () => {
     try {
-      await apiClearCart(canteenId);   // clear backend
-      setLines([]);           // clear UI
-      setCanteenId("");
+      await apiClearCart(canteenId); // clear backend
+      setLines([]); // clear UI
+      setCanteenId('');
     } catch (e) {
-      console.error("Clear cart failed", e);
+      console.error('Clear cart failed', e);
     }
   }, [canteenId]);
 
@@ -267,7 +263,7 @@ export function CartProvider({ children }) {
       removeLine,
       clearCart,
       reloadCart,
-    ],
+    ]
   );
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

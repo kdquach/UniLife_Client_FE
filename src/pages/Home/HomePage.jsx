@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import HomeBannerCarousel from '@/components/home/HomeBannerCarousel.jsx';
 import TodayMenuCarousel from '@/components/home/TodayMenuCarousel.jsx';
-import TopRatedProductsCarousel from '@/components/home/TopRatedProductsCarousel.jsx';
 import HomeFeaturesSection from '@/components/home/HomeFeaturesSection.jsx';
 import HomeWaysToEnjoy from '@/components/home/HomeWaysToEnjoy.jsx';
 import HomeCommunitySection from '@/components/home/HomeCommunitySection.jsx';
@@ -14,7 +13,6 @@ import homeBanner2 from '@/assets/images/home-banner-2.svg';
 import homeBanner3 from '@/assets/images/home-banner-3.svg';
 import { useBanner } from '@/hooks/useBanner.js';
 import { useDailyMenu } from '@/hooks/useDailyMenu.js';
-import { useProduct } from '@/hooks/useProduct.js';
 import { useWishlist } from '@/hooks/useWishlist.js';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
@@ -57,89 +55,6 @@ const FEATURE_SEED = [
   'Theo dõi đơn hàng',
   'Thực đơn theo ngày',
   'Gợi ý món ăn thông minh',
-];
-
-const PRODUCT_SEED = [
-  {
-    _id: 'seed-1',
-    name: 'Cơm gà sốt nấm',
-    description: 'Phần cơm nóng kèm gà áp chảo và sốt nấm thơm béo.',
-    image:
-      'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=900&q=80',
-    price: 35000,
-    averageRating: 4.8,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-2',
-    name: 'Bún bò UniLife',
-    description: 'Nước dùng đậm vị, topping đầy đủ cho bữa trưa năng lượng.',
-    image:
-      'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=900&q=80',
-    price: 42000,
-    averageRating: 4.7,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-3',
-    name: 'Mì xào hải sản',
-    description: 'Sợi mì dai kết hợp hải sản tươi và rau củ theo ngày.',
-    image:
-      'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=900&q=80',
-    price: 39000,
-    averageRating: 4.6,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-4',
-    name: 'Gà nướng mật ong',
-    description: 'Gà nướng vàng óng, ăn kèm salad và khoai nướng.',
-    image:
-      'https://images.unsplash.com/photo-1555992336-03a23c7b20ee?auto=format&fit=crop&w=900&q=80',
-    price: 45000,
-    averageRating: 4.9,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-5',
-    name: 'Salad cá ngừ',
-    description: 'Lựa chọn healthy với rau tươi, cá ngừ và sốt chanh nhẹ.',
-    image:
-      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
-    price: 33000,
-    averageRating: 4.5,
-    isPopular: false,
-  },
-  {
-    _id: 'seed-6',
-    name: 'Hamburger bò phô mai',
-    description: 'Bánh burger mềm, bò nướng và phô mai tan chảy.',
-    image:
-      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80',
-    price: 38000,
-    averageRating: 4.7,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-7',
-    name: 'Trà đào cam sả',
-    description: 'Thức uống giải nhiệt vị thanh mát, phù hợp mọi khung giờ.',
-    image:
-      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
-    price: 26000,
-    averageRating: 4.6,
-    isPopular: true,
-  },
-  {
-    _id: 'seed-8',
-    name: 'Bánh mousse xoài',
-    description: 'Món tráng miệng nhẹ với lớp mousse xoài mịn mát.',
-    image:
-      'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=900&q=80',
-    price: 28000,
-    averageRating: 4.8,
-    isPopular: false,
-  },
 ];
 
 const COMMUNITY_SEED = [
@@ -185,14 +100,6 @@ const COMMUNITY_SEED = [
   },
 ];
 
-const getProductRating = (product) => {
-  const rating = Number(
-    product?.averageRating ?? product?.ratingAverage ?? product?.rating ?? 0
-  );
-
-  return Number.isNaN(rating) ? 0 : rating;
-};
-
 export default function HomePage() {
   const cart = useCartStore();
   const panel = useRightPanel();
@@ -210,14 +117,6 @@ export default function HomePage() {
     fetchByCanteen: fetchDailyMenuByCanteen,
     reset: resetDailyMenu,
   } = useDailyMenu();
-
-  const {
-    products: topRatedProducts,
-    loading: loadingTopRated,
-    fetchAll: fetchTopRatedAll,
-    fetchByCanteen: fetchTopRatedByCanteen,
-    reset: resetTopRated,
-  } = useProduct();
 
   const {
     ids: wishlistIds,
@@ -261,46 +160,10 @@ export default function HomePage() {
           console.error('Khong the tai du lieu thuc don hom nay', ERROR);
         }
       }
-
-      const topQuery = {
-        limit: 60,
-        status: 'available',
-        sort: '-averageRating,-rating,-createdAt',
-      };
-
-      const fallbackQuery = {
-        limit: 60,
-        status: 'available',
-      };
-
-      try {
-        if (selectedCanteen?.id) {
-          await fetchTopRatedByCanteen(selectedCanteen.id, topQuery);
-        } else {
-          await fetchTopRatedAll(topQuery);
-        }
-      } catch {
-        try {
-          if (selectedCanteen?.id) {
-            await fetchTopRatedByCanteen(selectedCanteen.id, fallbackQuery);
-          } else {
-            await fetchTopRatedAll(fallbackQuery);
-          }
-        } catch (fallbackError) {
-          console.error('Khong the tai du lieu mon yeu thich', fallbackError);
-        }
-      }
     };
 
     loadData();
-  }, [
-    fetchDailyMenuByCanteen,
-    fetchTopRatedAll,
-    fetchTopRatedByCanteen,
-    resetDailyMenu,
-    resetTopRated,
-    selectedCanteen,
-  ]);
+  }, [fetchDailyMenuByCanteen, resetDailyMenu, selectedCanteen]);
 
   const isInCart = useCallback(
     (productId) =>
@@ -337,30 +200,13 @@ export default function HomePage() {
   const todayBase = useMemo(() => {
     if (Array.isArray(todayProducts) && todayProducts.length > 0)
       return todayProducts;
-    return PRODUCT_SEED;
+    return [];
   }, [todayProducts]);
 
   const todayCards = useMemo(
     () => todayBase.slice(0, 8).map(mapToCardItem),
     [mapToCardItem, todayBase]
   );
-
-  const topBase = useMemo(() => {
-    if (Array.isArray(topRatedProducts) && topRatedProducts.length > 0)
-      return topRatedProducts;
-    return PRODUCT_SEED;
-  }, [topRatedProducts]);
-
-  const topCards = useMemo(() => {
-    return [...topBase]
-      .sort((a, b) => {
-        const ratingDiff = getProductRating(b) - getProductRating(a);
-        if (ratingDiff !== 0) return ratingDiff;
-        return Number(Boolean(b?.isPopular)) - Number(Boolean(a?.isPopular));
-      })
-      .slice(0, 8)
-      .map(mapToCardItem);
-  }, [mapToCardItem, topBase]);
 
   const bannerItems = useMemo(() => {
     if (!Array.isArray(banners) || banners.length === 0) return BANNER_SEED;
@@ -376,8 +222,7 @@ export default function HomePage() {
     }));
   }, [banners]);
 
-  const showFeaturesSkeleton =
-    loadingToday && loadingTopRated && todayProducts.length === 0;
+  const showFeaturesSkeleton = loadingToday && todayProducts.length === 0;
 
   return (
     <div className="grid gap-8 bg-transparent">
@@ -402,12 +247,6 @@ export default function HomePage() {
           features={FEATURE_SEED}
           image="https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1400&q=80"
         />
-      )}
-
-      {loadingTopRated && topRatedProducts.length === 0 ? (
-        <CarouselSkeleton title="Đang tải món được yêu thích" />
-      ) : (
-        <TopRatedProductsCarousel products={topCards} />
       )}
 
       <HomeWaysToEnjoy heroImage="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=1400&q=80" />

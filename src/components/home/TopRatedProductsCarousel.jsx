@@ -11,10 +11,15 @@ const getItemsPerView = (width) => {
 };
 
 function TopRatedProductsCarousel({ products = [] }) {
-  const [itemsPerView, setItemsPerView] = useState(() => getItemsPerView(window.innerWidth));
+  const [itemsPerView, setItemsPerView] = useState(() =>
+    getItemsPerView(window.innerWidth)
+  );
   const [startIndex, setStartIndex] = useState(0);
 
-  const safeItems = useMemo(() => (Array.isArray(products) ? products.slice(0, 8) : []), [products]);
+  const safeItems = useMemo(
+    () => (Array.isArray(products) ? products.slice(0, 8) : []),
+    [products]
+  );
   const maxStart = Math.max(0, safeItems.length - itemsPerView);
 
   useEffect(() => {
@@ -29,11 +34,7 @@ function TopRatedProductsCarousel({ products = [] }) {
 
   return (
     <section className="mx-auto max-w-[1240px] bg-transparent">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-text sm:text-2xl">Món được yêu thích nhất</h2>
-          <p className="text-xs text-gray-500 sm:text-sm">Top món phổ biến được sinh viên đặt nhiều hôm nay</p>
-        </div>
+      <div className="flex items-end justify-end gap-3">
         <Link
           to="/favorite"
           className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-text transition-all duration-300 hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/35 sm:text-sm"
@@ -43,7 +44,6 @@ function TopRatedProductsCarousel({ products = [] }) {
       </div>
 
       <div className="relative mt-8 overflow-hidden">
-
         <button
           type="button"
           onClick={() => setStartIndex((prev) => Math.max(0, prev - 1))}
@@ -75,7 +75,7 @@ function TopRatedProductsCarousel({ products = [] }) {
               key={item.id}
               className="shrink-0 pb-1"
               style={{
-                width: `calc(${100 / itemsPerView}% - ${(itemsPerView - 1) * 32 / itemsPerView}px)`,
+                width: `calc(${100 / itemsPerView}% - ${((itemsPerView - 1) * 32) / itemsPerView}px)`,
               }}
             >
               <ProductCard
