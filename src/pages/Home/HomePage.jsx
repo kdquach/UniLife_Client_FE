@@ -12,7 +12,9 @@ import FeaturesSkeleton from '@/components/skeleton/FeaturesSkeleton.jsx';
 import homeBanner1 from '@/assets/images/home-banner-1.svg';
 import homeBanner2 from '@/assets/images/home-banner-2.svg';
 import homeBanner3 from '@/assets/images/home-banner-3.svg';
+import { useBanner } from '@/hooks/useBanner.js';
 import { useDailyMenu } from '@/hooks/useDailyMenu.js';
+import { useProduct } from '@/hooks/useProduct.js';
 import { useWishlist } from '@/hooks/useWishlist.js';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
@@ -197,11 +199,25 @@ export default function HomePage() {
   const { selectedCanteen } = useCampusStore();
 
   const {
+    banners,
+    loading: loadingBanners,
+    fetchActive: fetchActiveBanners,
+  } = useBanner();
+
+  const {
     products: todayProducts,
     loading: loadingToday,
     fetchByCanteen: fetchDailyMenuByCanteen,
     reset: resetDailyMenu,
   } = useDailyMenu();
+
+  const {
+    products: topRatedProducts,
+    loading: loadingTopRated,
+    fetchAll: fetchTopRatedAll,
+    fetchByCanteen: fetchTopRatedByCanteen,
+    reset: resetTopRated,
+  } = useProduct();
 
   const {
     ids: wishlistIds,
@@ -221,21 +237,70 @@ export default function HomePage() {
   }, [fetchWishlist]);
 
   useEffect(() => {
+    const loadBanners = async () => {
+      try {
+        await fetchActiveBanners(
+          selectedCanteen?.id ? { canteenId: selectedCanteen.id } : {}
+        );
+      } catch (ERROR) {
+        console.error('Khong the tai du lieu banner', ERROR);
+      }
+    };
+
+    loadBanners();
+  }, [fetchActiveBanners, selectedCanteen]);
+
+  useEffect(() => {
     const loadData = async () => {
       if (!selectedCanteen?.id) {
         resetDailyMenu();
-        return;
+      } else {
+        try {
+          await fetchDailyMenuByCanteen(selectedCanteen.id);
+        } catch (ERROR) {
+          console.error('Khong the tai du lieu thuc don hom nay', ERROR);
+        }
       }
 
+      const topQuery = {
+        limit: 60,
+        status: 'available',
+        sort: '-averageRating,-rating,-createdAt',
+      };
+
+      const fallbackQuery = {
+        limit: 60,
+        status: 'available',
+      };
+
       try {
-        await fetchDailyMenuByCanteen(selectedCanteen.id);
-      } catch (ERROR) {
-        console.error('Khong the tai du lieu thuc don hom nay', ERROR);
+        if (selectedCanteen?.id) {
+          await fetchTopRatedByCanteen(selectedCanteen.id, topQuery);
+        } else {
+          await fetchTopRatedAll(topQuery);
+        }
+      } catch {
+        try {
+          if (selectedCanteen?.id) {
+            await fetchTopRatedByCanteen(selectedCanteen.id, fallbackQuery);
+          } else {
+            await fetchTopRatedAll(fallbackQuery);
+          }
+        } catch (fallbackError) {
+          console.error('Khong the tai du lieu mon yeu thich', fallbackError);
+        }
       }
     };
 
     loadData();
-  }, [fetchDailyMenuByCanteen, resetDailyMenu, selectedCanteen]);
+  }, [
+    fetchDailyMenuByCanteen,
+    fetchTopRatedAll,
+    fetchTopRatedByCanteen,
+    resetDailyMenu,
+    resetTopRated,
+    selectedCanteen,
+  ]);
 
   const isInCart = useCallback(
     (productId) =>
@@ -281,10 +346,10 @@ export default function HomePage() {
   );
 
   const topBase = useMemo(() => {
-    if (Array.isArray(todayProducts) && todayProducts.length > 0)
-      return todayProducts;
+    if (Array.isArray(topRatedProducts) && topRatedProducts.length > 0)
+      return topRatedProducts;
     return PRODUCT_SEED;
-  }, [todayProducts]);
+  }, [topRatedProducts]);
 
   const topCards = useMemo(() => {
     return [...topBase]
@@ -297,12 +362,27 @@ export default function HomePage() {
       .map(mapToCardItem);
   }, [mapToCardItem, topBase]);
 
-  const showFeaturesSkeleton = loadingToday && todayProducts.length === 0;
+  const bannerItems = useMemo(() => {
+    if (!Array.isArray(banners) || banners.length === 0) return BANNER_SEED;
+
+    return banners.map((banner) => ({
+      id: banner?._id || banner?.id,
+      title: banner?.title || '',
+      description: banner?.description || '',
+      backgroundImage: banner?.imageUrl,
+      fallbackImage: banner?.fallbackImage,
+      linkUrl: banner?.linkUrl,
+      button: banner?.linkUrl ? 'Xem chi tiết' : 'Khám phá thực đơn',
+    }));
+  }, [banners]);
+
+  const showFeaturesSkeleton =
+    loadingToday && loadingTopRated && todayProducts.length === 0;
 
   return (
     <div className="grid gap-8 bg-transparent">
-      {bannerReady ? (
-        <HomeBannerCarousel banners={BANNER_SEED} />
+      {bannerReady && !loadingBanners ? (
+        <HomeBannerCarousel banners={bannerItems} />
       ) : (
         <BannerSkeleton />
       )}
@@ -324,7 +404,7 @@ export default function HomePage() {
         />
       )}
 
-      {loadingToday && todayProducts.length === 0 ? (
+      {loadingTopRated && topRatedProducts.length === 0 ? (
         <CarouselSkeleton title="Đang tải món được yêu thích" />
       ) : (
         <TopRatedProductsCarousel products={topCards} />
