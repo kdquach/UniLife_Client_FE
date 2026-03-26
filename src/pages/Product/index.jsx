@@ -9,6 +9,8 @@ import Loader from '@/components/Loader.jsx';
 import FeedbackSection from '@/components/feedback/FeedbackSection.jsx';
 import imageNotFound from '@/assets/images/image-not-found.png';
 
+const ORDERABLE_STATUSES = ['available', 'unavailable'];
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,16 +35,25 @@ export default function ProductDetailPage() {
   }, [id, fetchById]);
 
   const hasRecipe = Array.isArray(product?.recipe) && product.recipe.length > 0;
+  const canOrderByStatus = ORDERABLE_STATUSES.includes(
+    String(product?.status || '').toLowerCase()
+  );
 
   useEffect(() => {
-    if (!product?._id || !hasRecipe || product.status !== 'available') {
+    if (!product?._id || !hasRecipe || !canOrderByStatus) {
       return;
     }
 
     fetchInventoryCheck(product._id, quantity).catch((err) => {
       console.error('Failed to fetch inventory check:', err);
     });
-  }, [product?._id, product?.status, hasRecipe, quantity, fetchInventoryCheck]);
+  }, [
+    product?._id,
+    canOrderByStatus,
+    hasRecipe,
+    quantity,
+    fetchInventoryCheck,
+  ]);
 
   if (loading) {
     return (
@@ -82,8 +93,8 @@ export default function ProductDetailPage() {
   const currentImage = images[selectedImage] || imageNotFound;
 
   const isInStock = hasRecipe
-    ? product.status === 'available'
-    : product.status === 'available' && product.stockQuantity > 0;
+    ? canOrderByStatus
+    : canOrderByStatus && product.stockQuantity > 0;
   const isLowStock =
     !hasRecipe &&
     product.stockQuantity !== undefined &&
