@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dropdown } from 'antd';
+import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useProduct } from '@/hooks/useProduct.js';
@@ -57,6 +58,7 @@ export default function MenuPage() {
     products: dailyProducts,
     loading: loadingDaily,
     error: errorDaily,
+    notice: noticeDaily,
     fetchByCanteen: fetchDailyByCanteen,
     reset: resetDaily,
   } = useDailyMenu();
@@ -109,7 +111,6 @@ export default function MenuPage() {
     } else {
       fetchAll(params);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeTab,
     selectedCanteen?.id,
@@ -125,6 +126,12 @@ export default function MenuPage() {
       console.warn('Wishlist not loaded:', err?.message)
     );
   }, [fetchWishlist]);
+
+  useEffect(() => {
+    if (activeTab === 'daily' && noticeDaily && !loadingDaily && !errorDaily) {
+      toast.info(noticeDaily);
+    }
+  }, [activeTab, noticeDaily, loadingDaily, errorDaily]);
 
   // Build category list with id
   const baseItems = useMemo(
@@ -252,6 +259,16 @@ export default function MenuPage() {
             </button>
           </div>
         )}
+
+        {activeTab === 'daily' &&
+          noticeDaily &&
+          !currentError &&
+          !currentLoading && (
+            <div className="rounded-lg border border-info/30 bg-info/10 p-4 text-info">
+              <p className="font-medium">Thông báo menu theo ngày</p>
+              <p className="text-sm">{noticeDaily}</p>
+            </div>
+          )}
 
         {!currentLoading && (
           <>
