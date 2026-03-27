@@ -73,7 +73,7 @@ export default function ProductCard({
     );
 
     // Step 2–3: cart flies out, check flies in
-    timersRef.current.push(window.setTimeout(() => { }, BUTTON_MS));
+    timersRef.current.push(window.setTimeout(() => {}, BUTTON_MS));
 
     // Step 4: settle
     timersRef.current.push(
@@ -111,30 +111,31 @@ export default function ProductCard({
         'hover:-translate-y-1 hover:scale-[1.03]'
       )}
     >
-      <div
-        ref={imageWrapRef}
-        className="relative h-44 w-full overflow-hidden"
-      >
+      <div ref={imageWrapRef} className="relative h-44 w-full overflow-hidden">
         {image ? (
           <img
             src={image}
             alt={name}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.08]"
+            className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.08]"
             loading="lazy"
           />
         ) : (
           <img
             src={imageNotFound}
             alt={name}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.08]"
+            className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.08]"
             loading="lazy"
           />
         )}
       </div>
 
       <div className="grid gap-1 p-4">
-        <h3 className="truncate text-sm font-semibold text-text sm:text-[15px]">{name}</h3>
-        <p className="line-clamp-2 min-h-10 text-xs text-gray-500 sm:text-sm">{description}</p>
+        <h3 className="truncate text-sm font-semibold text-text sm:text-[15px]">
+          {name}
+        </h3>
+        <p className="line-clamp-2 min-h-10 text-xs text-gray-500 sm:text-sm">
+          {description}
+        </p>
         <p className="truncate text-base font-bold tracking-tight text-primary sm:text-lg">
           {priceText}
         </p>
@@ -176,7 +177,9 @@ export default function ProductCard({
             className={clsx(
               'relative z-10',
               'transition-transform duration-200 ease-out transition-colors',
-              wishlisted ? 'scale-110 group-hover:text-orange-600' : 'scale-100 group-hover:text-orange-500'
+              wishlisted
+                ? 'scale-110 group-hover:text-orange-600'
+                : 'scale-100 group-hover:text-orange-500'
             )}
           >
             <MaterialIcon
@@ -220,7 +223,9 @@ export default function ProductCard({
           </span>
 
           {/* TEXT */}
-          <span className="whitespace-nowrap text-xs sm:text-sm">Đặt món ngay</span>
+          <span className="whitespace-nowrap text-xs sm:text-sm">
+            Đặt món ngay
+          </span>
 
           {/* CHECK ICON (active / added) */}
           <span
