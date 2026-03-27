@@ -10,7 +10,7 @@ import { money } from "@/utils/currency.js";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { useOrderStore } from "@/store/order.store.js";
-import { getOrderById } from "@/services/order.service.js";
+import { cleanupFailedPaymentOrder, getOrderById } from "@/services/order.service.js";
 import { useSearchParams } from "react-router-dom";
 
 function useMediaQuery(query) {
@@ -44,6 +44,57 @@ export default function RightPanelShell({ mode = "shopping" }) {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
 
+  // If user navigates back from MoMo via browser back (bfcache restore),
+  // React effects might NOT rerun. Listen to page lifecycle events and
+  // cleanup the last created pending MoMo order (best-effort) when the app becomes visible.
+  useEffect(() => {
+    const attemptCleanup = async () => {
+      try {
+        // If URL already has MoMo result params, let the other effect handle it.
+        const sp = new URLSearchParams(window.location.search);
+        if (sp.get('orderId')) return;
+
+        const pendingId = localStorage.getItem('momoPendingOrderId');
+        if (!pendingId) return;
+
+        try {
+          await cleanupFailedPaymentOrder(pendingId);
+        } catch (err) {
+          // ignore if already cleaned up / not found / unauthorized
+          console.error('Cleanup pending MoMo order failed', err);
+        }
+      } catch {
+        // ignore
+      } finally {
+        try {
+          localStorage.removeItem('momoPendingOrderId');
+          localStorage.removeItem('momoPendingOrderAt');
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        attemptCleanup();
+      }
+    };
+
+    window.addEventListener('pageshow', attemptCleanup);
+    window.addEventListener('focus', attemptCleanup);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // Run once on mount too.
+    attemptCleanup();
+
+    return () => {
+      window.removeEventListener('pageshow', attemptCleanup);
+      window.removeEventListener('focus', attemptCleanup);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   // Open success modal after returning from MoMo via URL params
   useEffect(() => {
     const id = paymentResult.orderId;
@@ -52,17 +103,31 @@ export default function RightPanelShell({ mode = "shopping" }) {
       try {
         const resp = await getOrderById(id);
         const fetched = resp?.data?.order || null;
-        setSuccessOrder(fetched || order.lastOrder || { _id: id, payment: { method: "momo" } });
         const status = fetched?.payment?.status || paymentResult.status;
         if (status === "completed") {
+          setSuccessOrder(
+            fetched || order.lastOrder || { _id: id, payment: { method: "momo" } },
+          );
           cart.clearCart();
+          setSuccessOpen(true);
+        } else if (status === "failed") {
+          try {
+            await cleanupFailedPaymentOrder(id);
+          } catch (err) {
+            // ignore if already cleaned up / not found
+            console.error("Cleanup failed MoMo order failed", err);
+          }
         }
       } catch (err) {
-        // fallback minimal order if fetch fails
-        setSuccessOrder((prev) => prev || order.lastOrder || { _id: id, payment: { method: "momo" } });
+        // If order was hard-deleted (failed/cancelled), ignore.
         console.error("Failed to fetch order by id", err);
       } finally {
-        setSuccessOpen(true);
+        try {
+          localStorage.removeItem("momoPendingOrderId");
+          localStorage.removeItem("momoPendingOrderAt");
+        } catch {
+          // ignore
+        }
         // clear params to avoid reopening on refresh
         setSearchParams({});
       }
