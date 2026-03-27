@@ -18,6 +18,7 @@ const STATUS_STYLES = {
   preparing: "bg-primary/10 text-primary",
   ready: "bg-info/10 text-info",
   completed: "bg-success/10 text-success",
+  received: "bg-success/10 text-success",
   cancelled: "bg-danger/10 text-danger",
 };
 
@@ -27,6 +28,7 @@ const STATUS_LABELS = {
   preparing: "Đang chuẩn bị",
   ready: "Sẵn sàng lấy",
   completed: "Hoàn thành",
+  received: "Đã nhận",
   cancelled: "Đã hủy",
 };
 

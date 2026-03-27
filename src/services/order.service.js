@@ -85,3 +85,13 @@ export async function cleanupFailedPaymentOrder(orderId) {
   const response = await api.post(`/orders/${orderId}/payment-failure-cleanup`);
   return response.data;
 }
+
+/**
+ * Refresh QR Code for an order
+ * @param {string} orderId
+ * @returns {Promise<Object>} - { status, data: { pickupQRCode: { code, expireAt } } }
+ */
+export async function refreshQRCode(orderId) {
+  const response = await api.post(`/orders/${orderId}/refresh-qr`);
+  return response.data;
+}

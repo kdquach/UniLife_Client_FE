@@ -88,18 +88,15 @@ export default function OrderSuccessModal({
             </div>
           </div>
 
-          {/* QR Code với TOTP */}
-          {order?._id && (
-            <div className="mt-4 flex justify-center">
-              <PickupQRCode
-                orderId={order._id}
-                pickupCode={
-                  order.pickupQRCode?.code || order.orderNumber || code
-                }
-                size={140}
-              />
-            </div>
-          )}
+          {/* Thông báo chuẩn bị thay cho QR Code */}
+          <div className="mt-4 flex flex-col items-center gap-2 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+            <MaterialIcon name="timer" className="text-primary text-[24px]" />
+            <p className="text-sm font-medium text-primary text-center">
+              Đơn hàng đang được chuẩn bị.
+              <br />
+              Bạn sẽ nhận được mã QR khi món ăn sẵn sàng!
+            </p>
+          </div>
         </div>
 
         <button
