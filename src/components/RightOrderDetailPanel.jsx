@@ -439,34 +439,46 @@ export default function RightOrderDetailPanel({
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-600">Phương thức</span>
                   <span className="font-medium text-blue-800">
-                    {PAYMENT_METHOD_LABELS[order.payment.method] ||
-                      order.payment.method}
+                    {PAYMENT_METHOD_LABELS[order.payment.method] || order.payment.method}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-600">Trạng thái</span>
-                  <span
-                    className={clsx(
-                      'font-medium',
-                      order.payment.status === 'completed' ||
-                        order.payment.status === 'paid'
-                        ? 'text-green-600'
-                        : 'text-yellow-600'
+
+                {/* Do not show payment status/timestamps for cash payments (handled offline) */}
+                {order.payment.method !== 'cash' && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-600">Trạng thái</span>
+                      {(() => {
+                        const status = order.payment.status;
+                        if (status === 'completed' || status === 'paid') {
+                          return (
+                            <span className="font-medium text-green-600">Đã thanh toán</span>
+                          );
+                        }
+                        if (status === 'refunded') {
+                          return (
+                            <span className="font-medium text-gray-600">Đã hoàn tiền</span>
+                          );
+                        }
+
+                        return <span className="font-medium text-yellow-600">Chờ thanh toán</span>;
+                      })()}
+                    </div>
+
+                    {order.payment.paidAt && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-600">Thời gian</span>
+                        <span className="text-blue-800">{formatDate(order.payment.paidAt)}</span>
+                      </div>
                     )}
-                  >
-                    {order.payment.status === 'completed' ||
-                      order.payment.status === 'paid'
-                      ? 'Đã thanh toán'
-                      : 'Chờ thanh toán'}
-                  </span>
-                </div>
-                {order.payment.paidAt && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-600">Thời gian</span>
-                    <span className="text-blue-800">
-                      {formatDate(order.payment.paidAt)}
-                    </span>
-                  </div>
+
+                    {order.payment?.refundedAt && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-600">Hoàn tiền</span>
+                        <span className="text-blue-800">{formatDate(order.payment.refundedAt)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -707,8 +719,8 @@ export default function RightOrderDetailPanel({
                       name="star"
                       filled
                       className={`text-[28px] ${feedbackForm.rating >= star
-                          ? 'text-warning'
-                          : 'text-warning/25 hover:text-warning/50'
+                        ? 'text-warning'
+                        : 'text-warning/25 hover:text-warning/50'
                         } transition`}
                     />
                   </button>
