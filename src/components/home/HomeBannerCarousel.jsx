@@ -86,7 +86,7 @@ function HomeBannerCarousel({ banners = [] }) {
             className="max-w-[580px] space-y-4 p-6 text-white"
           >
             <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-              UniLife Food Market
+              Không gian ẩm thực UniLife
             </span>
 
             <h1 className="text-3xl font-bold leading-tight md:text-5xl">

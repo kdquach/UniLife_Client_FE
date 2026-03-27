@@ -8,7 +8,7 @@ const HOME_TEXT = {
   subtitle:
     "Ưu đãi và thông báo mới nhất sẽ hiển thị theo căn tin bạn đang chọn để trải nghiệm đặt món nhanh và chính xác hơn.",
   chooseCanteen:
-    "Bạn chưa chọn căn tin. Hãy chọn campus/canteen ở header để xem banner phù hợp.",
+    "Bạn chưa chọn căn tin. Hãy chọn cơ sở/căn tin ở thanh đầu trang để xem banner phù hợp.",
   noBanner: "Hiện chưa có banner hoạt động cho căn tin này.",
   retry: "Thử lại",
   goMenu: "Xem thực đơn",
@@ -193,10 +193,10 @@ export default function HomePage() {
           <span>© {new Date().getFullYear()} UniLife</span>
           <div className="flex gap-4">
             <Link to="/menu" className="hover:underline">
-              Menu
+              Thực đơn
             </Link>
             <Link to="/favorite" className="hover:underline">
-              Favorite
+              Yêu thích
             </Link>
           </div>
         </div>

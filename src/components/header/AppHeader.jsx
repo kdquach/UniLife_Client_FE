@@ -26,7 +26,9 @@ export default function AppHeader() {
   const [campuses, setCampuses] = useState([]);
   const [offTodayCount, setOffTodayCount] = useState(0);
 
-  const [openCampus, setOpenCampus] = useState(() => !selectedCampus || !selectedCanteen);
+  const [openCampus, setOpenCampus] = useState(
+    () => !selectedCampus || !selectedCanteen,
+  );
   const [showRequireModal, setShowRequireModal] = useState(false);
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
@@ -41,9 +43,11 @@ export default function AppHeader() {
         const data = await getActiveCampuses();
         const mapped = Array.isArray(data)
           ? data.map((item) => ({
-            ...item,
-            image: CAMPUS_IMAGE_BY_CODE[String(item?.code || "").toUpperCase()] || null,
-          }))
+              ...item,
+              image:
+                CAMPUS_IMAGE_BY_CODE[String(item?.code || "").toUpperCase()] ||
+                null,
+            }))
           : [];
         setCampuses(mapped);
       } catch {
@@ -66,10 +70,12 @@ export default function AppHeader() {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-        const count = (Array.isArray(canteens) ? canteens : []).filter((item) => {
-          const offDates = Array.isArray(item?.offDates) ? item.offDates : [];
-          return offDates.includes(today);
-        }).length;
+        const count = (Array.isArray(canteens) ? canteens : []).filter(
+          (item) => {
+            const offDates = Array.isArray(item?.offDates) ? item.offDates : [];
+            return offDates.includes(today);
+          },
+        ).length;
 
         setOffTodayCount(count);
       } catch {
@@ -82,7 +88,9 @@ export default function AppHeader() {
 
   const selectedCampusName = useMemo(() => {
     if (!selectedCampus) return "Chọn campus";
-    const found = campuses.find((item) => String(item._id) === String(selectedCampus));
+    const found = campuses.find(
+      (item) => String(item._id) === String(selectedCampus),
+    );
     return found?.name || "Chọn campus";
   }, [campuses, selectedCampus]);
 
@@ -97,7 +105,9 @@ export default function AppHeader() {
     if (!q.trim()) return;
 
     setSearching(true);
-    navigate(`/menu?search=${encodeURIComponent(q)}&canteenId=${selectedCanteen.id}`);
+    navigate(
+      `/menu?search=${encodeURIComponent(q)}&canteenId=${selectedCanteen.id}`,
+    );
     setSearching(false);
   };
 
@@ -117,7 +127,7 @@ export default function AppHeader() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search menu..."
+              placeholder="Tìm kiếm menu..."
               disabled={searching}
               className="h-10 w-full rounded-full bg-white/80 pl-10 pr-10 text-sm shadow-card transition focus:shadow-[0_0_0_4px_rgba(255,85,50,0.18)]"
             />
@@ -160,7 +170,10 @@ export default function AppHeader() {
           campuses={campuses}
         />
       )}
-      <RequireCanteenModal open={showRequireModal} onClose={() => setShowRequireModal(false)} />
+      <RequireCanteenModal
+        open={showRequireModal}
+        onClose={() => setShowRequireModal(false)}
+      />
     </header>
   );
 }

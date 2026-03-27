@@ -1,21 +1,21 @@
-import clsx from 'clsx';
-import { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Dropdown } from 'antd';
-import { toast } from 'sonner';
-import { useCartStore } from '@/store/cart.store.js';
-import { useRightPanel } from '@/store/rightPanel.store.js';
-import { useProduct } from '@/hooks/useProduct.js';
-import { useDailyMenu } from '@/hooks/useDailyMenu.js';
-import { useCampusStore } from '@/store/useCampusStore';
-import { useWishlist } from '@/hooks/useWishlist.js';
-import ProductCard from '@/components/ProductCard.jsx';
-import Loader from '@/components/Loader.jsx';
-import EmptyState from '@/components/EmptyState.jsx';
-import MaterialIcon from '@/components/MaterialIcon.jsx';
-import ResetLink from '../../components/menu/ResetLink';
+import clsx from "clsx";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Dropdown } from "antd";
+import { toast } from "sonner";
+import { useCartStore } from "@/store/cart.store.js";
+import { useRightPanel } from "@/store/rightPanel.store.js";
+import { useProduct } from "@/hooks/useProduct.js";
+import { useDailyMenu } from "@/hooks/useDailyMenu.js";
+import { useCampusStore } from "@/store/useCampusStore";
+import { useWishlist } from "@/hooks/useWishlist.js";
+import ProductCard from "@/components/ProductCard.jsx";
+import Loader from "@/components/Loader.jsx";
+import EmptyState from "@/components/EmptyState.jsx";
+import MaterialIcon from "@/components/MaterialIcon.jsx";
+import ResetLink from "../../components/menu/ResetLink";
 
-const ORDERABLE_STATUSES = ['available', 'unavailable'];
+const ORDERABLE_STATUSES = ["available", "unavailable"];
 
 function Chip({ active, children, onClick }) {
   return (
@@ -23,10 +23,10 @@ function Chip({ active, children, onClick }) {
       type="button"
       onClick={onClick}
       className={clsx(
-        'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200',
+        "whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200",
         active
-          ? 'bg-primary text-inverse shadow-lift'
-          : 'bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift'
+          ? "bg-primary text-inverse shadow-lift"
+          : "bg-surface/80 text-muted shadow-card hover:bg-surface hover:shadow-lift",
       )}
     >
       {children}
@@ -42,8 +42,8 @@ function useHorizontalOverflow(ref) {
     if (!el) return;
     const check = () => setOverflow(el.scrollWidth > el.clientWidth);
     check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   return overflow;
@@ -66,12 +66,12 @@ export default function MenuPage() {
   } = useDailyMenu();
   const { selectedCanteen } = useCampusStore();
 
-  const [activeCategoryId, setActiveCategoryId] = useState(null); // null = All
-  const [sortOption, setSortOption] = useState('');
+  const [activeCategoryId, setActiveCategoryId] = useState(null); // null = Tất cả
+  const [sortOption, setSortOption] = useState("");
   const isDefaultFilter = !activeCategoryId && !sortOption;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() =>
-    searchParams.get('tab') === 'daily' ? 'daily' : 'food'
+    searchParams.get("tab") === "daily" ? "daily" : "food",
   );
   const {
     ids: wishlistIds,
@@ -79,24 +79,24 @@ export default function MenuPage() {
     toggle: toggleWishlist,
   } = useWishlist();
 
-  const queryTab = searchParams.get('tab');
-  const querySearch = searchParams.get('search')?.trim() || '';
+  const queryTab = searchParams.get("tab");
+  const querySearch = searchParams.get("search")?.trim() || "";
   const normalizedSearch = querySearch.toLowerCase();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActiveTab(queryTab === 'daily' ? 'daily' : 'food');
+    setActiveTab(queryTab === "daily" ? "daily" : "food");
   }, [queryTab]);
 
   // Reset filter khi đổi canteen
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveCategoryId(null);
-    setSortOption('');
+    setSortOption("");
   }, [selectedCanteen?.id, activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'daily') {
+    if (activeTab === "daily") {
       if (selectedCanteen?.id) {
         fetchDailyByCanteen(selectedCanteen.id).catch(() => {});
       } else {
@@ -126,35 +126,35 @@ export default function MenuPage() {
   // Fetch wishlist
   useEffect(() => {
     fetchWishlist().catch((err) =>
-      console.warn('Wishlist not loaded:', err?.message)
+      console.warn("Wishlist not loaded:", err?.message),
     );
   }, [fetchWishlist]);
 
   useEffect(() => {
-    if (activeTab === 'daily' && noticeDaily && !loadingDaily && !errorDaily) {
+    if (activeTab === "daily" && noticeDaily && !loadingDaily && !errorDaily) {
       toast.info(noticeDaily);
     }
   }, [activeTab, noticeDaily, loadingDaily, errorDaily]);
 
   // Build category list with id
   const baseItems = useMemo(
-    () => (activeTab === 'daily' ? dailyProducts : products),
-    [activeTab, dailyProducts, products]
+    () => (activeTab === "daily" ? dailyProducts : products),
+    [activeTab, dailyProducts, products],
   );
 
   const items = useMemo(() => {
     let result = Array.isArray(baseItems) ? [...baseItems] : [];
 
-    if (activeTab === 'food') {
+    if (activeTab === "food") {
       result = result.filter((item) =>
-        ORDERABLE_STATUSES.includes(String(item?.status || '').toLowerCase())
+        ORDERABLE_STATUSES.includes(String(item?.status || "").toLowerCase()),
       );
     }
 
     if (normalizedSearch) {
       result = result.filter((item) => {
-        const name = String(item?.name || '').toLowerCase();
-        const description = String(item?.description || '').toLowerCase();
+        const name = String(item?.name || "").toLowerCase();
+        const description = String(item?.description || "").toLowerCase();
         return (
           name.includes(normalizedSearch) ||
           description.includes(normalizedSearch)
@@ -165,18 +165,18 @@ export default function MenuPage() {
     if (activeCategoryId) {
       result = result.filter((item) => {
         const categoryId = item?.categoryId?._id || item?.categoryId;
-        return String(categoryId || '') === String(activeCategoryId);
+        return String(categoryId || "") === String(activeCategoryId);
       });
     }
 
     if (sortOption) {
       const sorterMap = {
-        'name-asc': (a, b) =>
-          String(a?.name || '').localeCompare(String(b?.name || '')),
-        'name-desc': (a, b) =>
-          String(b?.name || '').localeCompare(String(a?.name || '')),
-        'price-asc': (a, b) => Number(a?.price || 0) - Number(b?.price || 0),
-        'price-desc': (a, b) => Number(b?.price || 0) - Number(a?.price || 0),
+        "name-asc": (a, b) =>
+          String(a?.name || "").localeCompare(String(b?.name || "")),
+        "name-desc": (a, b) =>
+          String(b?.name || "").localeCompare(String(a?.name || "")),
+        "price-asc": (a, b) => Number(a?.price || 0) - Number(b?.price || 0),
+        "price-desc": (a, b) => Number(b?.price || 0) - Number(a?.price || 0),
       };
 
       const sorter = sorterMap[sortOption];
@@ -201,43 +201,43 @@ export default function MenuPage() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    return [{ id: null, name: 'All' }, ...options];
+    return [{ id: null, name: "Tất cả" }, ...options];
   }, [baseItems]);
 
-  const currentLoading = activeTab === 'daily' ? loadingDaily : loading;
-  const currentError = activeTab === 'daily' ? errorDaily : error;
+  const currentLoading = activeTab === "daily" ? loadingDaily : loading;
+  const currentError = activeTab === "daily" ? errorDaily : error;
 
   return (
     <div className="grid gap-6">
       <section className="grid min-w-0 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-text">Menu</h1>
+          <h1 className="text-2xl font-semibold text-text">Thực đơn</h1>
           <p className="text-sm text-muted">
-            Choose from our delicious selection
+            Chọn món từ danh sách hấp dẫn của chúng tôi
           </p>
         </div>
 
         <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white p-1 shadow-card">
           <button
             type="button"
-            onClick={() => setActiveTab('food')}
+            onClick={() => setActiveTab("food")}
             className={clsx(
-              'rounded-full px-4 py-2 text-sm font-medium transition',
-              activeTab === 'food'
-                ? 'bg-primary text-inverse shadow-lift'
-                : 'text-muted hover:text-text'
+              "rounded-full px-4 py-2 text-sm font-medium transition",
+              activeTab === "food"
+                ? "bg-primary text-inverse shadow-lift"
+                : "text-muted hover:text-text",
             )}
           >
-            Menu Food
+            Món ăn
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('daily')}
+            onClick={() => setActiveTab("daily")}
             className={clsx(
-              'rounded-full px-4 py-2 text-sm font-medium transition',
-              activeTab === 'daily'
-                ? 'bg-primary text-inverse shadow-lift'
-                : 'text-muted hover:text-text'
+              "rounded-full px-4 py-2 text-sm font-medium transition",
+              activeTab === "daily"
+                ? "bg-primary text-inverse shadow-lift"
+                : "text-muted hover:text-text",
             )}
           >
             Menu theo ngày
@@ -252,11 +252,11 @@ export default function MenuPage() {
 
         {currentError && !currentLoading && (
           <div className="rounded-lg bg-danger/10 p-4 text-danger">
-            <p className="font-medium">Failed to load menu</p>
+            <p className="font-medium">Không thể tải thực đơn</p>
             <p className="text-sm">{currentError}</p>
             <button
               onClick={() => {
-                if (activeTab === 'daily' && selectedCanteen?.id) {
+                if (activeTab === "daily" && selectedCanteen?.id) {
                   fetchDailyByCanteen(selectedCanteen.id);
                   return;
                 }
@@ -264,12 +264,12 @@ export default function MenuPage() {
               }}
               className="mt-3 rounded bg-danger px-4 py-2 text-inverse hover:bg-danger/90"
             >
-              Retry
+              Thử lại
             </button>
           </div>
         )}
 
-        {activeTab === 'daily' &&
+        {activeTab === "daily" &&
           noticeDaily &&
           !currentError &&
           !currentLoading && (
@@ -289,7 +289,7 @@ export default function MenuPage() {
                     onClick={() =>
                       categoryRef.current?.scrollBy({
                         left: -200,
-                        behavior: 'smooth',
+                        behavior: "smooth",
                       })
                     }
                     className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
@@ -304,7 +304,7 @@ export default function MenuPage() {
                 >
                   {categoryOptions.map((cat) => (
                     <Chip
-                      key={cat.id ?? 'all'}
+                      key={cat.id ?? "all"}
                       active={activeCategoryId === cat.id}
                       onClick={() => setActiveCategoryId(cat.id)}
                     >
@@ -318,7 +318,7 @@ export default function MenuPage() {
                     onClick={() =>
                       categoryRef.current?.scrollBy({
                         left: 200,
-                        behavior: 'smooth',
+                        behavior: "smooth",
                       })
                     }
                     className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-surface shadow-card p-1 transition hover:shadow-lift"
@@ -334,19 +334,19 @@ export default function MenuPage() {
                   disabled={isDefaultFilter}
                   onClick={() => {
                     setActiveCategoryId(null);
-                    setSortOption('');
+                    setSortOption("");
                   }}
                 />
 
                 <Dropdown
-                  trigger={['click']}
+                  trigger={["click"]}
                   menu={{
                     items: [
-                      { key: '', label: 'Mặc định' },
-                      { key: 'name-asc', label: 'Tên A → Z' },
-                      { key: 'name-desc', label: 'Tên Z → A' },
-                      { key: 'price-desc', label: 'Giá cao → thấp' },
-                      { key: 'price-asc', label: 'Giá thấp → cao' },
+                      { key: "", label: "Mặc định" },
+                      { key: "name-asc", label: "Tên A → Z" },
+                      { key: "name-desc", label: "Tên Z → A" },
+                      { key: "price-desc", label: "Giá cao → thấp" },
+                      { key: "price-asc", label: "Giá thấp → cao" },
                     ],
                     onClick: ({ key }) => setSortOption(key),
                   }}
@@ -356,15 +356,15 @@ export default function MenuPage() {
                     className="flex items-center gap-2 rounded-card bg-surface px-4 py-2 shadow-card transition-all hover:shadow-lift min-w-40"
                   >
                     <span className="text-sm font-medium text-text flex-1 text-left">
-                      {sortOption === 'name-asc'
-                        ? 'Tên A → Z'
-                        : sortOption === 'name-desc'
-                          ? 'Tên Z → A'
-                          : sortOption === 'price-desc'
-                            ? 'Giá cao → thấp'
-                            : sortOption === 'price-asc'
-                              ? 'Giá thấp → cao'
-                              : 'Mặc định'}
+                      {sortOption === "name-asc"
+                        ? "Tên A → Z"
+                        : sortOption === "name-desc"
+                          ? "Tên Z → A"
+                          : sortOption === "price-desc"
+                            ? "Giá cao → thấp"
+                            : sortOption === "price-asc"
+                              ? "Giá thấp → cao"
+                              : "Mặc định"}
                     </span>
                     <MaterialIcon
                       name="expand_more"
@@ -378,14 +378,14 @@ export default function MenuPage() {
             {items.length === 0 ? (
               <EmptyState
                 title={
-                  activeTab === 'daily'
-                    ? 'Không có món trong menu ngày'
-                    : 'No items available'
+                  activeTab === "daily"
+                    ? "Không có món trong menu ngày"
+                    : "Không có món khả dụng"
                 }
                 description={
-                  activeTab === 'daily'
-                    ? 'Hiện chưa có menu theo ngày hoặc không có món phù hợp bộ lọc.'
-                    : 'No products found for the selected category'
+                  activeTab === "daily"
+                    ? "Hiện chưa có menu theo ngày hoặc không có món phù hợp bộ lọc."
+                    : "Không tìm thấy món phù hợp với danh mục đã chọn"
                 }
               />
             ) : (

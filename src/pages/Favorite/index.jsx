@@ -1,12 +1,12 @@
-import { useEffect, useMemo } from 'react';
-import { useWishlist } from '@/hooks/useWishlist.js';
-import { useProduct } from '@/hooks/useProduct.js';
-import Loader from '@/components/Loader.jsx';
-import EmptyState from '@/components/EmptyState.jsx';
-import ProductCard from '@/components/ProductCard.jsx';
-import clsx from 'clsx';
+import { useEffect, useMemo } from "react";
+import { useWishlist } from "@/hooks/useWishlist.js";
+import { useProduct } from "@/hooks/useProduct.js";
+import Loader from "@/components/Loader.jsx";
+import EmptyState from "@/components/EmptyState.jsx";
+import ProductCard from "@/components/ProductCard.jsx";
+import clsx from "clsx";
 
-const FAVORITABLE_STATUSES = ['available', 'unavailable'];
+const FAVORITABLE_STATUSES = ["available", "unavailable"];
 
 export default function FavoritePage() {
   const { ids, items, loading, error, fetch, clear, toggle } = useWishlist();
@@ -23,7 +23,7 @@ export default function FavoritePage() {
     return products.filter(
       (p) =>
         set.has(p._id) &&
-        FAVORITABLE_STATUSES.includes(String(p?.status || '').toLowerCase())
+        FAVORITABLE_STATUSES.includes(String(p?.status || "").toLowerCase()),
     );
   }, [products, ids]);
 
@@ -32,7 +32,7 @@ export default function FavoritePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
-            Favorite Food
+            Món ăn yêu thích
           </h1>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
@@ -41,13 +41,13 @@ export default function FavoritePage() {
           disabled={items.length === 0}
           onClick={() => clear().catch(() => {})}
           className={clsx(
-            'rounded-lg px-3 py-2 text-sm font-semibold shadow-card transition',
+            "rounded-lg px-3 py-2 text-sm font-semibold shadow-card transition",
             items.length === 0
-              ? 'bg-surfaceMuted text-muted'
-              : 'bg-primary text-inverse hover:shadow-lift'
+              ? "bg-surfaceMuted text-muted"
+              : "bg-primary text-inverse hover:shadow-lift",
           )}
         >
-          Clear Favorites
+          Xóa tất cả yêu thích
         </button>
       </div>
 
@@ -57,8 +57,8 @@ export default function FavoritePage() {
         </div>
       ) : favoriteProducts.length === 0 ? (
         <EmptyState
-          title="No favorites yet"
-          description="Add items to your favorites from the Menu"
+          title="Bạn chưa có món yêu thích"
+          description="Hãy thêm món vào danh sách yêu thích từ trang thực đơn"
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
