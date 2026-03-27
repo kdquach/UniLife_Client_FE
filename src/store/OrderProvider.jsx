@@ -49,7 +49,12 @@ export function OrderProvider({ children }) {
         const order = res.data.order;
 
         setLastOrder(order);
-        toast.success("Đặt hàng thành công");
+        // For MoMo payment flow, the user is redirected to the payment gateway.
+        // Do not show immediate "success" toast for pending MoMo orders —
+        // only show success after payment confirmation.
+        if (paymentMethod !== 'momo') {
+          toast.success("Đặt hàng thành công");
+        }
         return order;
       } catch (e) {
         toast.error("Đặt hàng thất bại");

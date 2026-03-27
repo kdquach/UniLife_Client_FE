@@ -293,14 +293,40 @@ export default function NotificationCenter() {
       );
     };
 
+    const handleRemoveNotification = (event) => {
+      if (!event) return;
+      const ids = Array.isArray(event.ids) ? event.ids : [];
+      const orderId = event.orderId || null;
+
+      setNotifications((prev) => {
+        if (!prev || prev.length === 0) return prev;
+
+        // Count how many unread notifications will be removed
+        let removedUnread = 0;
+        const filtered = prev.filter((n) => {
+          const shouldRemove = (ids.length > 0 && ids.includes(n.id)) || (orderId && n.metadata?.orderId === orderId);
+          if (shouldRemove && !n.isRead) removedUnread += 1;
+          return !shouldRemove;
+        });
+
+        if (removedUnread > 0) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - removedUnread));
+        }
+
+        return filtered;
+      });
+    };
+
     socket.on("connect", handleConnect);
     socket.on("reconnect", handleReconnect);
     socket.on("notification:new", handleNewNotification);
+    socket.on("notification:remove", handleRemoveNotification);
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("reconnect", handleReconnect);
       socket.off("notification:new", handleNewNotification);
+      socket.off("notification:remove", handleRemoveNotification);
     };
   }, [userAuthenticated, userId, canteenId, selectedType, selectedStatus]);
 
