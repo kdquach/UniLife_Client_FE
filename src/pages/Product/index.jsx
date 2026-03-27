@@ -104,7 +104,7 @@ export default function ProductDetailPage() {
   // Tính maxServings cho cả recipe và stockQuantity
   const maxServings = hasRecipe
     ? inventoryCheck?.maxServings
-    : product.stockQuantity || 0;
+    : product.stockQuantity;
 
   // Kiểm tra số lượng vượt quá cho cả recipe và stockQuantity
   const isQuantityExceeded =
@@ -263,11 +263,13 @@ export default function ProductDetailPage() {
                       />
                       Còn hàng
                     </p>
-                    {isLowStock && (
-                      <p className="text-warning text-sm mt-1">
-                        ⚠️ Chỉ còn {product.stockQuantity} sản phẩm
-                      </p>
-                    )}
+                    {isLowStock &&
+                      typeof product.stockQuantity === 'number' &&
+                      product.stockQuantity > 0 && (
+                        <p className="text-warning text-sm mt-1">
+                          ⚠️ Chỉ còn {product.stockQuantity} sản phẩm
+                        </p>
+                      )}
                   </>
                 ) : product.status === 'out_of_stock' ? (
                   <p className="text-danger font-semibold flex items-center gap-2">
@@ -288,22 +290,23 @@ export default function ProductDetailPage() {
 
             {/* Info Grid */}
             <div className="grid grid-cols-2 gap-3 py-4 border-y border-divider">
-              {product.preparationTime && (
-                <div className="flex items-center gap-2">
-                  <MaterialIcon
-                    name="schedule"
-                    className="text-[20px] text-primary"
-                  />
-                  <div className="text-sm">
-                    <p className="text-muted">Thời gian</p>
-                    <p className="font-semibold text-text">
-                      {product.preparationTime} phút
-                    </p>
+              {typeof product.preparationTime === 'number' &&
+                product.preparationTime > 0 && (
+                  <div className="flex items-center gap-2">
+                    <MaterialIcon
+                      name="schedule"
+                      className="text-[20px] text-primary"
+                    />
+                    <div className="text-sm">
+                      <p className="text-muted">Thời gian</p>
+                      <p className="font-semibold text-text">
+                        {product.preparationTime} phút
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {product.calories && (
+              {typeof product.calories === 'number' && product.calories > 0 && (
                 <div className="flex items-center gap-2">
                   <MaterialIcon
                     name="local_fire_department"
@@ -327,7 +330,9 @@ export default function ProductDetailPage() {
                   <div className="text-sm">
                     <p className="text-muted">Số lượng</p>
                     <p className="font-semibold text-text">
-                      {product.stockQuantity} cái
+                      {product.stockQuantity > 0
+                        ? `${product.stockQuantity} cái`
+                        : ''}
                     </p>
                   </div>
                 </div>
@@ -390,7 +395,9 @@ export default function ProductDetailPage() {
                 </button>
               </div>
               <span className="text-sm text-muted ml-auto">
-                = {money(product.price * quantity)}
+                {typeof product.price === 'number' && product.price > 0
+                  ? `= ${money(product.price * quantity)}`
+                  : ''}
               </span>
             </div>
             {inventoryWarning && (

@@ -14,9 +14,11 @@ import homeBanner3 from '@/assets/images/home-banner-3.svg';
 import { useBanner } from '@/hooks/useBanner.js';
 import { useDailyMenu } from '@/hooks/useDailyMenu.js';
 import { useWishlist } from '@/hooks/useWishlist.js';
+import { useVouchers } from '@/hooks/useVouchers.js';
 import { useCartStore } from '@/store/cart.store.js';
 import { useRightPanel } from '@/store/rightPanel.store.js';
 import { useCampusStore } from '@/store/useCampusStore.js';
+import HomeVoucherSection from '@/components/home/HomeVoucherSection.jsx';
 
 const BANNER_SEED = [
   {
@@ -124,6 +126,12 @@ export default function HomePage() {
     toggle: toggleWishlist,
   } = useWishlist();
 
+  const {
+    vouchers,
+    loading: loadingVouchers,
+    fetchActive: fetchActiveVouchers,
+  } = useVouchers();
+
   const [bannerReady, setBannerReady] = useState(false);
 
   useEffect(() => {
@@ -164,6 +172,20 @@ export default function HomePage() {
 
     loadData();
   }, [fetchDailyMenuByCanteen, resetDailyMenu, selectedCanteen]);
+
+  useEffect(() => {
+    const loadVouchers = async () => {
+      try {
+        await fetchActiveVouchers(
+          selectedCanteen?.id ? { canteenId: selectedCanteen.id } : {}
+        );
+      } catch (ERROR) {
+        console.error('Khong the tai du lieu voucher', ERROR);
+      }
+    };
+
+    loadVouchers();
+  }, [fetchActiveVouchers, selectedCanteen]);
 
   const isInCart = useCallback(
     (productId) =>
@@ -250,6 +272,8 @@ export default function HomePage() {
       )}
 
       <HomeWaysToEnjoy heroImage="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=1400&q=80" />
+
+      <HomeVoucherSection vouchers={vouchers} loading={loadingVouchers} />
 
       <HomeCommunitySection images={COMMUNITY_SEED} />
 
