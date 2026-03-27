@@ -219,14 +219,18 @@ export function CartProvider({ children }) {
     }, [lines, canteenId]);
 
   const clearCart = useCallback(async () => {
+    // After external redirects (e.g., MoMo), local `canteenId` may not be
+    // initialized yet; fall back to selected canteen to ensure backend clears.
+    const effectiveCanteenId = selectedCanteen?.id || canteenId;
+
     try {
-      await apiClearCart(canteenId); // clear backend
+      await apiClearCart(effectiveCanteenId); // clear backend
       setLines([]); // clear UI
-      setCanteenId('');
+      setCanteenId(selectedCanteen?.id || '');
     } catch (e) {
       console.error('Clear cart failed', e);
     }
-  }, [canteenId]);
+  }, [selectedCanteen?.id, canteenId]);
 
   /**
    * ===============================

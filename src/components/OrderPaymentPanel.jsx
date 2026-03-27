@@ -13,7 +13,7 @@ import momoActiveLogo from "@/assets/images/momo-active.png";
 import sepayActiveLogo from "@/assets/images/sepay-active.png";
 const { paymentMomo } = await import("@/services/payment.service.js");
 import { useSearchParams } from "react-router-dom";
-import { getOrderById } from "@/services/order.service.js";
+import { cleanupFailedPaymentOrder, getOrderById } from "@/services/order.service.js";
 
 function normalizeLines(order) {
   const items = Array.isArray(order) ? order : [];
@@ -59,19 +59,36 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   useEffect(() => {
     const id = paymentResult.orderId;
     if (!id) return;
-    if (paymentResult.status === "completed") {
-      cart.clearCart();
-    }
+    (async () => {
+      if (paymentResult.status === "completed") {
+        cart.clearCart();
 
-    // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
-    setSuccessOrder(
-      (prev) =>
-        prev || order.lastOrder || { _id: id, payment: { method: "momo" } },
-    );
-    setSuccessOpen(true);
+        // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
+        setSuccessOrder(
+          (prev) =>
+            prev || order.lastOrder || { _id: id, payment: { method: "momo" } },
+        );
+        setSuccessOpen(true);
+      } else if (paymentResult.status === "failed") {
+        // Fallback: ask BE to cleanup unpaid pending MoMo order
+        try {
+          await cleanupFailedPaymentOrder(id);
+        } catch (err) {
+          // ignore if already cleaned up / not found
+          console.error("Cleanup failed MoMo order failed", err);
+        }
+      }
 
-    // tránh mở lại modal khi refresh
-    setSearchParams({});
+      try {
+        localStorage.removeItem("momoPendingOrderId");
+        localStorage.removeItem("momoPendingOrderAt");
+      } catch {
+        // ignore
+      }
+
+      // Avoid reopening on refresh
+      setSearchParams({});
+    })();
   }, [paymentResult.orderId, paymentResult.status]);
 
   /* ---------- init MoMo ---------- */
@@ -85,6 +102,14 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
       });
       if (!created) return;
 
+      // Persist pending MoMo order for cleanup if user navigates back without callback
+      try {
+        localStorage.setItem("momoPendingOrderId", String(created._id));
+        localStorage.setItem("momoPendingOrderAt", String(Date.now()));
+      } catch {
+        // ignore storage failures
+      }
+
       // 2. Tạo giao dịch MoMo
       const resp = await paymentMomo({
         orderId: created._id,
@@ -94,6 +119,19 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
       const payUrl = resp?.result?.payUrl || resp?.payUrl;
       if (payUrl) {
         window.location.href = payUrl;
+      } else {
+        // If we can't redirect to MoMo, cleanup the created pending order
+        try {
+          await cleanupFailedPaymentOrder(created._id);
+        } catch (e) {
+          // ignore
+        }
+        try {
+          localStorage.removeItem("momoPendingOrderId");
+          localStorage.removeItem("momoPendingOrderAt");
+        } catch {
+          // ignore
+        }
       }
     } catch (err) {
       console.error("MoMo payment init failed", err);

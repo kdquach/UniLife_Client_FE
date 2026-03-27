@@ -76,3 +76,12 @@ export async function cancelOrder(orderId) {
   const response = await api.patch(`/orders/${orderId}/cancel`);
   return response.data;
 }
+
+/**
+ * Cleanup unpaid order after payment failure/cancel (customer-triggered fallback)
+ * @param {string} orderId
+ */
+export async function cleanupFailedPaymentOrder(orderId) {
+  const response = await api.post(`/orders/${orderId}/payment-failure-cleanup`);
+  return response.data;
+}
