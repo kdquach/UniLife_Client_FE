@@ -24,7 +24,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
 
   const itemCountLabel = useMemo(() => {
     const n = cart.count || 0;
-    return `${n} item${n === 1 ? "" : "s"}`;
+    return `${n} món`;
   }, [cart.count]);
 
   const deliveryFee = 0;
@@ -39,10 +39,10 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid">
           <h1 className="text-lg   font-semibold text-text">
-            Your Order Summary
+            Tóm tắt đơn hàng
           </h1>
           <p className="text-xs text-muted">
-            {hasItems ? itemCountLabel : "No items yet"}
+            {hasItems ? itemCountLabel : "Chưa có món"}
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
               panel.backToCart();
               panel.collapse();
             }}
-            aria-label="Collapse panel"
+            aria-label="Thu gọn bảng"
           >
             <MaterialIcon name="chevron_left" className="text-[22px]" />
           </button>
@@ -188,7 +188,7 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
               panel.openPayment?.(draft);
             }}
           >
-            Continue to order
+            Tiếp tục đặt hàng
           </button>
         </div>
       ) : null}

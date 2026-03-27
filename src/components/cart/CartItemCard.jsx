@@ -14,24 +14,40 @@ export default function CartItemCard({
     <div className="flex items-start gap-3 rounded-2xl bg-white p-3 shadow-card">
       {line.item?.image ? (
         <div className="h-14 w-14 overflow-hidden rounded-xl bg-surfaceMuted">
-          <img src={line.item.image} alt={line.item?.name} className="h-full w-full object-cover" />
+          <img
+            src={line.item.image}
+            alt={line.item?.name}
+            className="h-full w-full object-cover"
+          />
         </div>
       ) : (
         <div className="h-14 w-14 overflow-hidden rounded-xl bg-surfaceMuted">
-          <img src={imageNotFound} alt={line.item?.name} className="h-full w-full object-cover" />
+          <img
+            src={imageNotFound}
+            alt={line.item?.name}
+            className="h-full w-full object-cover"
+          />
         </div>
       )}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text">{line.item?.name}</p>
-            <p className="mt-0.5 text-xs text-muted">{money(line.unit)} / item</p>
+            <p className="truncate text-sm font-semibold text-text">
+              {line.item?.name}
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              {money(line.unit)} / món
+            </p>
             {readonly ? (
-              <p className="mt-0.5 text-xs font-semibold text-muted">x{line.qty}</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                x{line.qty}
+              </p>
             ) : null}
           </div>
-          <p className="shrink-0 text-sm font-bold text-primary">{money(line.lineTotal)}</p>
+          <p className="shrink-0 text-sm font-bold text-primary">
+            {money(line.lineTotal)}
+          </p>
         </div>
 
         {readonly ? null : (
@@ -41,16 +57,18 @@ export default function CartItemCard({
                 type="button"
                 className="grid h-8 w-8 place-items-center text-sm font-semibold text-muted transition hover:text-primary"
                 onClick={() => onDec?.(line)}
-                aria-label="Decrease"
+                aria-label="Giảm số lượng"
               >
                 −
               </button>
-              <span className="w-8 text-center text-xs font-semibold">{line.qty}</span>
+              <span className="w-8 text-center text-xs font-semibold">
+                {line.qty}
+              </span>
               <button
                 type="button"
                 className="grid h-8 w-8 place-items-center text-sm font-semibold text-muted transition hover:text-primary"
                 onClick={() => onInc?.(line)}
-                aria-label="Increase"
+                aria-label="Tăng số lượng"
               >
                 +
               </button>
@@ -61,7 +79,7 @@ export default function CartItemCard({
               className="ml-auto text-xs font-semibold text-danger hover:underline"
               onClick={() => onRemove?.(line)}
             >
-              Remove
+              Xóa
             </button>
           </div>
         )}

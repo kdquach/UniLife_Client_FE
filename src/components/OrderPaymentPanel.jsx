@@ -13,7 +13,10 @@ import momoActiveLogo from "@/assets/images/momo-active.png";
 import sepayActiveLogo from "@/assets/images/sepay-active.png";
 const { paymentMomo } = await import("@/services/payment.service.js");
 import { useSearchParams } from "react-router-dom";
-import { cleanupFailedPaymentOrder, getOrderById } from "@/services/order.service.js";
+import {
+  cleanupFailedPaymentOrder,
+  getOrderById,
+} from "@/services/order.service.js";
 
 function normalizeLines(order) {
   const items = Array.isArray(order) ? order : [];
@@ -142,15 +145,15 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
       <div className={clsx("flex h-full flex-col", className)}>
         <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
           <div className="grid">
-            <h1 className="text-lg font-semibold text-text">Payment</h1>
-            <p className="text-xs text-muted">No order draft</p>
+            <h1 className="text-lg font-semibold text-text">Thanh toán</h1>
+            <p className="text-xs text-muted">Chưa có đơn nháp</p>
           </div>
           {allowCollapse ? (
             <button
               type="button"
               className="grid h-9 w-9 place-items-center rounded-full text-muted transition duration-200 hover:text-primary"
               onClick={() => panel.collapse()}
-              aria-label="Collapse panel"
+              aria-label="Thu gọn bảng"
             >
               <MaterialIcon name="chevron_left" className="text-[22px]" />
             </button>
@@ -190,8 +193,10 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
     <div className={clsx("flex h-full flex-col", className)}>
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid">
-          <h1 className="text-lg font-semibold text-text">Order Payment</h1>
-          <p className="text-xs text-muted">Total: {money(total)}</p>
+          <h1 className="text-lg font-semibold text-text">
+            Thanh toán đơn hàng
+          </h1>
+          <p className="text-xs text-muted">Tổng tiền: {money(total)}</p>
         </div>
 
         {allowCollapse ? (
@@ -199,7 +204,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             type="button"
             className="grid h-9 w-9 place-items-center rounded-full text-muted transition duration-200 hover:text-primary"
             onClick={() => panel.collapse()}
-            aria-label="Collapse panel"
+            aria-label="Thu gọn bảng"
           >
             <MaterialIcon name="chevron_left" className="text-[22px]" />
           </button>
@@ -226,12 +231,24 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
           </div>
 
           <div className="mt-4 grid gap-2">
-            <h3 className="text-sm font-semibold text-text">Payment method</h3>
+            <h3 className="text-sm font-semibold text-text">
+              Phương thức thanh toán
+            </h3>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: "cash", label: "Cash", icon: "payments" },
-                { key: "momo", label: "MoMo", logo: momoLogo, activeLogo: momoActiveLogo },
-                { key: "sepay", label: "Sepay", logo: sepayLogo, activeLogo: sepayActiveLogo },
+                { key: "cash", label: "Tiền mặt", icon: "payments" },
+                {
+                  key: "momo",
+                  label: "MoMo",
+                  logo: momoLogo,
+                  activeLogo: momoActiveLogo,
+                },
+                {
+                  key: "sepay",
+                  label: "Sepay",
+                  logo: sepayLogo,
+                  activeLogo: sepayActiveLogo,
+                },
               ].map((m) => {
                 const active = paymentMethod === m.key;
                 return (
@@ -281,17 +298,17 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
 
           <div className="mt-4 rounded-3xl bg-surfaceMuted p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text">QR Code</h3>
-              <span className="text-xs text-muted">DEV mode</span>
+              <h3 className="text-sm font-semibold text-text">Mã QR</h3>
+              <span className="text-xs text-muted">Chế độ phát triển</span>
             </div>
             <div className="mt-3 grid place-items-center rounded-2xl bg-white p-5">
               <div className="grid h-44 w-44 place-items-center rounded-2xl border border-border bg-surface">
                 <span className="text-xs font-semibold text-muted">
-                  QR placeholder
+                  QR tạm thời
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted">
-                TODO(api): generate QR from orderId
+                TODO(api): tạo QR từ orderId
               </p>
             </div>
           </div>
