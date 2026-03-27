@@ -8,7 +8,8 @@ export default function OrderTabs({ active, onChange }) {
     { id: "confirmed", label: "Đã xác nhận" },
     { id: "preparing", label: "Đang chuẩn bị" },
     { id: "ready", label: "Sẵn sàng" },
-    { id: "completed", label: "Hoàn thành" },
+    { id: "completed", label: "Chờ Nhận" },
+    { id: "received", label: "Đã nhận" },
     { id: "cancelled", label: "Đã hủy" },
   ];
 

@@ -21,7 +21,8 @@ const STATUS_STYLES = {
   confirmed: 'bg-info/10 text-info border-info/20',
   preparing: 'bg-primary/10 text-primary border-primary/20',
   ready: 'bg-info/10 text-info border-info/20',
-  completed: 'bg-success/10 text-success border-success/20',
+  completed: 'bg-primary/10 text-primary border-primary/20',
+  received: 'bg-success/10 text-success border-success/20',
   cancelled: 'bg-danger/10 text-danger border-danger/20',
 };
 
@@ -29,8 +30,9 @@ const STATUS_LABELS = {
   pending: 'Chờ xác nhận',
   confirmed: 'Đã xác nhận',
   preparing: 'Đang chuẩn bị',
-  ready: 'Sẵn sàng lấy',
+  ready: 'Sẵn sàng',
   completed: 'Hoàn thành',
+  received: 'Đã nhận',
   cancelled: 'Đã hủy',
 };
 
@@ -373,7 +375,7 @@ export default function RightOrderDetailPanel({
                 {items.map((item) => {
                   const productId = item.productId?._id || item.productId;
                   const hasFeedback = existingFeedbacks[productId];
-                  const isCompleted = order.status === 'completed';
+                  const isFinalStatus = order.status === 'completed' || order.status === 'received';
 
                   return (
                     <div
@@ -399,7 +401,7 @@ export default function RightOrderDetailPanel({
                           {money(item.price)} x {item.quantity}
                         </p>
                         {/* Hiển thị trạng thái đã đánh giá */}
-                        {isCompleted && hasFeedback && (
+                        {isFinalStatus && hasFeedback && (
                           <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
                             <MaterialIcon name="check_circle" size={12} />
                             <span>Đã đánh giá</span>
@@ -410,8 +412,8 @@ export default function RightOrderDetailPanel({
                         <span className="font-semibold text-gray-800">
                           {money(item.lineTotal)}
                         </span>
-                        {/* Nút đánh giá chỉ hiển thị khi completed và chưa feedback */}
-                        {isCompleted && !hasFeedback && !loadingFeedbacks && (
+                        {/* Nút đánh giá chỉ hiển thị khi đã hoàn thành/nhận và chưa feedback */}
+                        {isFinalStatus && !hasFeedback && !loadingFeedbacks && (
                           <button
                             type="button"
                             onClick={() => handleOpenFeedbackModal(item)}
@@ -497,14 +499,11 @@ export default function RightOrderDetailPanel({
               </div>
             </div>
 
-            {/* QR Code for pickup - hiển thị theo BE logic */}
-            {(order.status === 'pending' ||
-              order.status === 'confirmed' ||
-              order.status === 'preparing' ||
-              order.status === 'ready') && (
+            {/* QR Code for pickup - chỉ hiển thị khi đơn đã hoàn thành (completed) */}
+            {order.status === 'completed' && (
                 <PickupQRCode
                   orderId={order._id}
-                  pickupCode={order.pickupQRCode?.code || order.orderNumber}
+                  initialCode={order.pickupQRCode?.code || order.orderNumber}
                   size={140}
                 />
               )}
@@ -512,9 +511,11 @@ export default function RightOrderDetailPanel({
         )}
       </div>
 
-      {/* Footer - Re-order button (only for completed or cancelled orders) */}
+      {/* Footer - Re-order button (only for completed, received or cancelled orders) */}
       {order &&
-        (order.status === 'completed' || order.status === 'cancelled') && (
+        (order.status === 'completed' ||
+          order.status === 'received' ||
+          order.status === 'cancelled') && (
           <div className="bg-surface border-t border-divider px-5 py-4">
             <button
               type="button"

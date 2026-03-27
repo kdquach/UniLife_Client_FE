@@ -64,7 +64,7 @@ function Timeline({ status }) {
             cancelled ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary"
           )}
         >
-          {cancelled ? "Cancelled" : idx === 3 ? "Completed" : "In Progress"}
+          {cancelled ? "Đã hủy" : idx === 5 ? "Đã nhận" : "Đang xử lý"}
         </span>
       </div>
 
@@ -147,7 +147,7 @@ export default function OrderDetailPanel({ className, allowCollapse = true }) {
   }
 
   const status = order.status || ORDER_STATUS.pending;
-  const canReorder = status === ORDER_STATUS.completed || status === ORDER_STATUS.cancelled;
+  const canReorder = status === ORDER_STATUS.completed || status === ORDER_STATUS.received || status === ORDER_STATUS.cancelled;
 
   return (
     <div className={clsx("flex h-full flex-col", className)}>
