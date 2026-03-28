@@ -78,6 +78,10 @@ export function RightPanelProvider({ children }) {
     setExpanded(true);
   }, []);
 
+  const updateOrder = useCallback((nextOrder) => {
+    setOrder(nextOrder || null);
+  }, []);
+
   const backToCart = useCallback(() => {
     setView("cart");
     setDetailItemId(null);
@@ -103,6 +107,7 @@ export function RightPanelProvider({ children }) {
       openDetail,
       openPayment,
       openOrderDetail,
+      updateOrder,
       backToCart,
       setDetailQty,
     }),
@@ -121,6 +126,7 @@ export function RightPanelProvider({ children }) {
       openDetail,
       openPayment,
       openOrderDetail,
+      updateOrder,
       backToCart,
     ]
   );

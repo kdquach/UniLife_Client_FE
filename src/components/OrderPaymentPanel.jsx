@@ -1,33 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
+import { useSearchParams } from "react-router-dom";
 import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
-import { money } from "@/utils/currency.js";
-import MaterialIcon from "@/components/MaterialIcon.jsx";
-import CartItemCard from "@/components/cart/CartItemCard.jsx";
-import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 import { useOrderStore } from "@/store/order.store.js";
-import momoLogo from "@/assets/images/momo.png";
-import sepayLogo from "@/assets/images/sepay.png";
-import momoActiveLogo from "@/assets/images/momo-active.png";
-import sepayActiveLogo from "@/assets/images/sepay-active.png";
-const { paymentMomo } = await import("@/services/payment.service.js");
-import { useSearchParams } from "react-router-dom";
+import { money } from "@/utils/currency.js";
+import { paymentMomo } from "@/services/payment.service.js";
 import {
   cleanupFailedPaymentOrder,
   getOrderById,
 } from "@/services/order.service.js";
+import MaterialIcon from "@/components/MaterialIcon.jsx";
+import CartItemCard from "@/components/cart/CartItemCard.jsx";
+import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
 
-function normalizeLines(order) {
-  const items = Array.isArray(order) ? order : [];
+// Images
+import momoLogo from "@/assets/images/momo.png";
+import sepayLogo from "@/assets/images/sepay.png";
+import momoActiveLogo from "@/assets/images/momo-active.png";
+import sepayActiveLogo from "@/assets/images/sepay-active.png";
+
+function normalizeLines(lines = []) {
+  const items = Array.isArray(lines) ? lines : [];
   return items.map((it, idx) => {
-    const unit = Number(it.productId.price) || 0;
-    const qty = Number(it.quantity) || 1;
+    const unit = Number(it?.productId?.price) || 0;
+    const qty = Number(it?.quantity) || 1;
     return {
-      lineId: `pay-${order?._id || "x"}-${idx}`,
+      lineId: `pay-${idx}`,
       itemId: it?.productId?._id,
       qty,
-      item: { name: it?.productId?.name, image: it?.productId?.image },
+      item: {
+        name: it?.productId?.name || "Sản phẩm",
+        image: it?.productId?.image,
+      },
       unit,
       lineTotal: unit * qty,
     };
@@ -37,11 +42,11 @@ function normalizeLines(order) {
 export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
-  const order = useOrderStore();
+  const orderStore = useOrderStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  /* ---------- đọc kết quả từ MoMo ---------- */
+  /* ---------- MoMo Callback result ---------- */
   const paymentResult = useMemo(() => {
     return {
       orderId: searchParams.get("orderId"),
@@ -57,28 +62,27 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   /* ---------- data ---------- */
   const draft = panel.order;
   const lines = useMemo(() => normalizeLines(cart.lines), [cart.lines]);
-  const total = cart.total;
+  // Use discounted total from draft if available
+  const total = draft?.summary?.total ?? cart.total;
 
   useEffect(() => {
     const id = paymentResult.orderId;
     if (!id) return;
+
     (async () => {
       if (paymentResult.status === "completed") {
         cart.clearCart();
-
-        // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
         setSuccessOrder(
           (prev) =>
-            prev || order.lastOrder || { _id: id, payment: { method: "momo" } },
+            prev ||
+            orderStore.lastOrder || { _id: id, payment: { method: "momo" } },
         );
         setSuccessOpen(true);
       } else if (paymentResult.status === "failed") {
-        // Fallback: ask BE to cleanup unpaid pending MoMo order
         try {
           await cleanupFailedPaymentOrder(id);
         } catch (err) {
-          // ignore if already cleaned up / not found
-          console.error("Cleanup failed MoMo order failed", err);
+          console.error("Failed to cleanup unpaid order after MoMo failure:", err);
         }
       }
 
@@ -89,57 +93,57 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
         // ignore
       }
 
-      // Avoid reopening on refresh
       setSearchParams({});
     })();
-  }, [paymentResult.orderId, paymentResult.status]);
+  }, [paymentResult.orderId, paymentResult.status, cart, orderStore, setSearchParams]);
 
-  /* ---------- init MoMo ---------- */
+  /* ---------- handle MoMo ---------- */
   const handlePaymentMomo = async () => {
     try {
-      // 1. Tạo order pending
-      const created = await order.createOrder({
+      // 1. Create pending order
+      const created = await orderStore.createOrder({
         paymentMethod: "momo",
         voucherCode: draft?.voucherCode,
         campusId: draft?.campusId,
+        summary: draft?.summary,
       });
-      if (!created) return;
 
-      // Persist pending MoMo order for cleanup if user navigates back without callback
+      if (!created || !created._id) {
+        console.error("Order creation failed for MoMo");
+        return;
+      }
+
       try {
         localStorage.setItem("momoPendingOrderId", String(created._id));
         localStorage.setItem("momoPendingOrderAt", String(Date.now()));
       } catch {
-        // ignore storage failures
+        // ignore
       }
 
-      // 2. Tạo giao dịch MoMo
+      // 2. Init MoMo Transaction
+      // Ensure we use the correct total amount (priority to summary.total)
+      const payAmount = created.totalAmount ?? created.summary?.total ?? total;
       const resp = await paymentMomo({
         orderId: created._id,
-        amount: created.totalAmount,
+        amount: payAmount,
       });
 
       const payUrl = resp?.result?.payUrl || resp?.payUrl;
       if (payUrl) {
         window.location.href = payUrl;
       } else {
-        // If we can't redirect to MoMo, cleanup the created pending order
+        console.error("No payUrl received from MoMo", resp);
         try {
           await cleanupFailedPaymentOrder(created._id);
-        } catch (e) {
-          // ignore
-        }
-        try {
-          localStorage.removeItem("momoPendingOrderId");
-          localStorage.removeItem("momoPendingOrderAt");
-        } catch {
-          // ignore
+        } catch (err) {
+          console.error("Cleanup failed after MoMo init failure:", err);
         }
       }
     } catch (err) {
-      console.error("MoMo payment init failed", err);
+      console.error("MoMo payment process failed:", err);
     }
   };
+
   if (!draft) {
     return (
       <div className={clsx("flex h-full flex-col", className)}>
@@ -148,16 +152,15 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             <h1 className="text-lg font-semibold text-text">Thanh toán</h1>
             <p className="text-xs text-muted">Chưa có đơn nháp</p>
           </div>
-          {allowCollapse ? (
+          {allowCollapse && (
             <button
               type="button"
-              className="grid h-9 w-9 place-items-center rounded-full text-muted transition duration-200 hover:text-primary"
+              className="grid h-9 w-9 place-items-center rounded-full text-muted hover:text-primary transition"
               onClick={() => panel.collapse()}
-              aria-label="Thu gọn bảng"
             >
               <MaterialIcon name="chevron_left" className="text-[22px]" />
             </button>
-          ) : null}
+          )}
         </div>
         <div className="flex-1 grid place-items-center p-8 text-center">
           <div className="grid gap-2">
@@ -173,17 +176,10 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             </button>
           </div>
         </div>
-
-        {/* Always render success modal, even when no draft */}
         <OrderSuccessModal
           open={successOpen}
-          order={successOrder || order.lastOrder}
+          order={successOrder || orderStore.lastOrder}
           onClose={() => setSuccessOpen(false)}
-          onViewOrder={() => {
-            if (!successOrder) return;
-            setSuccessOpen(false);
-            panel.openOrderDetail(successOrder);
-          }}
         />
       </div>
     );
@@ -198,17 +194,15 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
           </h1>
           <p className="text-xs text-muted">Tổng tiền: {money(total)}</p>
         </div>
-
-        {allowCollapse ? (
+        {allowCollapse && (
           <button
             type="button"
-            className="grid h-9 w-9 place-items-center rounded-full text-muted transition duration-200 hover:text-primary"
+            className="grid h-9 w-9 place-items-center rounded-full text-muted hover:text-primary transition"
             onClick={() => panel.collapse()}
-            aria-label="Thu gọn bảng"
           >
             <MaterialIcon name="chevron_left" className="text-[22px]" />
           </button>
-        ) : null}
+        )}
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
@@ -259,7 +253,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                     className={clsx(
                       "grid h-14 place-items-center rounded-xl px-2 transition",
                       active
-                        ? "bg-primary text-inverse"
+                        ? "bg-primary text-inverse shadow-sm"
                         : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80",
                     )}
                   >
@@ -301,21 +295,21 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
               <h3 className="text-sm font-semibold text-text">Mã QR</h3>
               <span className="text-xs text-muted">Chế độ phát triển</span>
             </div>
-            <div className="mt-3 grid place-items-center rounded-2xl bg-white p-5">
-              <div className="grid h-44 w-44 place-items-center rounded-2xl border border-border bg-surface">
+            <div className="mt-3 grid place-items-center rounded-2xl bg-white p-5 shadow-sm">
+              <div className="grid h-44 w-44 place-items-center rounded-2xl border border-dashed border-border bg-surface">
                 <span className="text-xs font-semibold text-muted">
                   QR tạm thời
                 </span>
               </div>
-              <p className="mt-2 text-xs text-muted">
-                TODO(api): tạo QR từ orderId
+              <p className="mt-2 text-[10px] text-muted uppercase tracking-wider">
+                Sẽ hiển thị sau khi hoàn tất thanh toán
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white/70 backdrop-blur px-5 py-4 grid gap-2">
+      <div className="bg-white/70 backdrop-blur px-5 py-4">
         <button
           type="button"
           className={clsx(
@@ -323,34 +317,36 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             "rounded-2xl text-sm font-semibold text-inverse",
             "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
             "shadow-card transition duration-200",
-            "hover:shadow-lift active:scale-[0.99]",
+            "hover:shadow-lift active:scale-[0.98]",
           )}
           onClick={async () => {
-            if (paymentMethod === "momo") {
-              await handlePaymentMomo();
-              // Wait for MoMo callback to confirm status; don't clear cart here
-              return;
-            } else {
-              const created = await order.createOrder({
+            try {
+              if (paymentMethod === "momo") {
+                await handlePaymentMomo();
+                return;
+              }
+
+              const created = await orderStore.createOrder({
                 paymentMethod,
                 voucherCode: draft?.voucherCode,
                 campusId: draft?.campusId,
+                summary: draft?.summary,
               });
-              console.log("🚀 ~ OrderPaymentPanel ~ created:", created);
+
               if (created) {
-                // Fetch full order to populate canteen info for detail view
                 let full = created;
                 try {
                   const resp = await getOrderById(created._id);
                   full = resp?.data?.order || created;
                 } catch (e) {
-                  // fallback if fetch fails
-                  console.error("Fallback: using created order data", e);
+                  console.warn("Fallback to created data:", e);
                 }
                 setSuccessOrder(full);
                 setSuccessOpen(true);
                 cart.clearCart();
               }
+            } catch (err) {
+              console.error("Order completion failed:", err);
             }
           }}
         >
@@ -360,7 +356,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
 
       <OrderSuccessModal
         open={successOpen}
-        order={successOrder || order.lastOrder}
+        order={successOrder || orderStore.lastOrder}
         onClose={() => setSuccessOpen(false)}
         onViewOrder={() => {
           if (!successOrder) return;

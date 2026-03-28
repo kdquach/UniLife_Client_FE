@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import clsx from "clsx";
 import { useCartStore } from "@/store/cart.store.js";
 import { useRightPanel } from "@/store/rightPanel.store.js";
@@ -6,6 +6,7 @@ import CartItemCard from "@/components/cart/CartItemCard.jsx";
 import MaterialIcon from "@/components/MaterialIcon.jsx";
 import { money } from "@/utils/currency.js";
 import { ORDER_STATUS, ORDER_STATUS_BADGE, ORDER_STATUS_LABEL, ORDER_TIMELINE_STEPS, getTimelineIndex } from "@/constants/order.constant.js";
+import { getOrderById } from "@/services/order.service.js";
 
 function normalizeLines(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -122,6 +123,30 @@ export default function OrderDetailPanel({ className, allowCollapse = true }) {
 
   const order = panel.order || null;
   const { lines, subtotal, tax, total } = useMemo(() => normalizeLines(order), [order]);
+
+  // Polling for status updates if not in a final state
+  useEffect(() => {
+    if (!order?._id) return;
+
+    // Final states where we stop polling
+    const finalStates = [ORDER_STATUS.received, ORDER_STATUS.cancelled];
+    if (finalStates.includes(order.status)) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getOrderById(order._id);
+        const nextOrder = res?.data?.order;
+
+        if (nextOrder && nextOrder.status !== order.status) {
+          panel.updateOrder(nextOrder);
+        }
+      } catch (err) {
+        console.error("Polling order status failed:", err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [order?._id, order?.status, panel]);
 
   if (!order) {
     return (

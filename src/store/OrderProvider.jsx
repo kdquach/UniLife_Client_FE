@@ -11,7 +11,7 @@ export function OrderProvider({ children }) {
   const [lastOrder, setLastOrder] = useState(null);
 
   const createOrder = useCallback(
-    async ({ paymentMethod, note, voucherCode, campusId }) => {
+    async ({ paymentMethod, note, voucherCode, campusId, summary }) => {
       if (cart.lines.length === 0) {
         toast.error("Giỏ hàng trống");
         return null;
@@ -29,7 +29,7 @@ export function OrderProvider({ children }) {
           })),
           payment: { method: paymentMethod },
           note,
-          summary: {
+          summary: summary || {
             subtotal: cart.subtotal,
             tax: cart.tax,
             total: cart.total,
