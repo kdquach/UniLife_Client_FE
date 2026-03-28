@@ -254,7 +254,7 @@ export default function RightOrderDetailPanel({
             try {
               localStorage.setItem('unilife_user', JSON.stringify(updatedUser));
               window.dispatchEvent(
-                new CustomEvent('userUpdated', { detail: updatedUser }),
+                new CustomEvent('userUpdated', { detail: updatedUser })
               );
             } catch {
               // ignore storage/event errors
@@ -311,7 +311,7 @@ export default function RightOrderDetailPanel({
             className={clsx(
               'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border',
               STATUS_STYLES[order.status] ||
-              'bg-gray-100 text-gray-600 border-gray-200'
+                'bg-gray-100 text-gray-600 border-gray-200'
             )}
           >
             {STATUS_LABELS[order.status] || order.status}
@@ -375,7 +375,8 @@ export default function RightOrderDetailPanel({
                 {items.map((item) => {
                   const productId = item.productId?._id || item.productId;
                   const hasFeedback = existingFeedbacks[productId];
-                  const isFinalStatus = order.status === 'completed' || order.status === 'received';
+                  const isFinalStatus =
+                    order.status === 'completed' || order.status === 'received';
 
                   return (
                     <div
@@ -439,7 +440,8 @@ export default function RightOrderDetailPanel({
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-600">Phương thức</span>
                   <span className="font-medium text-blue-800">
-                    {PAYMENT_METHOD_LABELS[order.payment.method] || order.payment.method}
+                    {PAYMENT_METHOD_LABELS[order.payment.method] ||
+                      order.payment.method}
                   </span>
                 </div>
 
@@ -452,30 +454,42 @@ export default function RightOrderDetailPanel({
                         const status = order.payment.status;
                         if (status === 'completed' || status === 'paid') {
                           return (
-                            <span className="font-medium text-green-600">Đã thanh toán</span>
+                            <span className="font-medium text-green-600">
+                              Đã thanh toán
+                            </span>
                           );
                         }
                         if (status === 'refunded') {
                           return (
-                            <span className="font-medium text-gray-600">Đã hoàn tiền</span>
+                            <span className="font-medium text-gray-600">
+                              Đã hoàn tiền
+                            </span>
                           );
                         }
 
-                        return <span className="font-medium text-yellow-600">Chờ thanh toán</span>;
+                        return (
+                          <span className="font-medium text-yellow-600">
+                            Chờ thanh toán
+                          </span>
+                        );
                       })()}
                     </div>
 
                     {order.payment.paidAt && (
                       <div className="flex justify-between text-sm">
                         <span className="text-blue-600">Thời gian</span>
-                        <span className="text-blue-800">{formatDate(order.payment.paidAt)}</span>
+                        <span className="text-blue-800">
+                          {formatDate(order.payment.paidAt)}
+                        </span>
                       </div>
                     )}
 
                     {order.payment?.refundedAt && (
                       <div className="flex justify-between text-sm">
                         <span className="text-blue-600">Hoàn tiền</span>
-                        <span className="text-blue-800">{formatDate(order.payment.refundedAt)}</span>
+                        <span className="text-blue-800">
+                          {formatDate(order.payment.refundedAt)}
+                        </span>
                       </div>
                     )}
                   </>
@@ -496,15 +510,6 @@ export default function RightOrderDetailPanel({
                   <span>-{money(order.discount)}</span>
                 </div>
               )}
-              {/* Tax - tính 8% trên subtotal */}
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Thuế (8%)</span>
-                <span>
-                  {money(
-                    order.tax || order.taxAmount || (order.subTotal || 0) * 0.08
-                  )}
-                </span>
-              </div>
               <div className="flex justify-between text-base font-bold text-gray-800 pt-2 border-t border-gray-200">
                 <span>Tổng cộng</span>
                 <span className="text-primary">{money(order.totalAmount)}</span>
@@ -513,12 +518,12 @@ export default function RightOrderDetailPanel({
 
             {/* QR Code for pickup - chỉ hiển thị khi đơn đã hoàn thành (completed) */}
             {order.status === 'completed' && (
-                <PickupQRCode
-                  orderId={order._id}
-                  initialCode={order.pickupQRCode?.code || order.orderNumber}
-                  size={140}
-                />
-              )}
+              <PickupQRCode
+                orderId={order._id}
+                initialCode={order.pickupQRCode?.code || order.orderNumber}
+                size={140}
+              />
+            )}
           </div>
         )}
       </div>
@@ -679,7 +684,7 @@ export default function RightOrderDetailPanel({
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className="w-12 h-12 rounded-card bg-surfaceMuted flex items-center justify-center overflow-hidden shrink-0">
                 {selectedProduct.image &&
-                  selectedProduct.image !== 'default.jpg' ? (
+                selectedProduct.image !== 'default.jpg' ? (
                   <img
                     src={selectedProduct.image}
                     alt={selectedProduct.productName}
@@ -718,10 +723,11 @@ export default function RightOrderDetailPanel({
                     <MaterialIcon
                       name="star"
                       filled
-                      className={`text-[28px] ${feedbackForm.rating >= star
-                        ? 'text-warning'
-                        : 'text-warning/25 hover:text-warning/50'
-                        } transition`}
+                      className={`text-[28px] ${
+                        feedbackForm.rating >= star
+                          ? 'text-warning'
+                          : 'text-warning/25 hover:text-warning/50'
+                      } transition`}
                     />
                   </button>
                 ))}

@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
-import { OrderContext } from "./order.context";
-import { createOrder as apiCreateOrder } from "@/services/order.service";
-import { toast } from "sonner";
-import { useCartStore } from "@/store/cart.store.js";
+import { useCallback, useMemo, useState } from 'react';
+import { OrderContext } from './order.context';
+import { createOrder as apiCreateOrder } from '@/services/order.service';
+import { toast } from 'sonner';
+import { useCartStore } from '@/store/cart.store.js';
 
 export function OrderProvider({ children }) {
   const cart = useCartStore();
@@ -13,27 +13,37 @@ export function OrderProvider({ children }) {
   const createOrder = useCallback(
     async ({ paymentMethod, note, voucherCode, campusId, summary }) => {
       if (cart.lines.length === 0) {
-        toast.error("Giỏ hàng trống");
+        toast.error('Giỏ hàng trống');
         return null;
       }
 
       setCreating(true);
       try {
+        const normalizedSummary = summary
+          ? {
+              subtotal:
+                typeof summary.subtotal === 'number'
+                  ? summary.subtotal
+                  : cart.subtotal,
+              total:
+                typeof summary.total === 'number' ? summary.total : cart.total,
+            }
+          : {
+              subtotal: cart.subtotal,
+              total: cart.total,
+            };
+
         const payload = {
           canteenId: cart.canteenId,
           items: cart.lines.map((l) => ({
             productId: l.productId._id,
-            productName: l.productId.name ?? "",
+            productName: l.productId.name ?? '',
             quantity: l.quantity ?? 1,
             price: l.productId.price ?? 0,
           })),
           payment: { method: paymentMethod },
           note,
-          summary: summary || {
-            subtotal: cart.subtotal,
-            tax: cart.tax,
-            total: cart.total,
-          },
+          summary: normalizedSummary,
         };
 
         // Add voucher data if present
@@ -53,17 +63,17 @@ export function OrderProvider({ children }) {
         // Do not show immediate "success" toast for pending MoMo orders —
         // only show success after payment confirmation.
         if (paymentMethod !== 'momo') {
-          toast.success("Đặt hàng thành công");
+          toast.success('Đặt hàng thành công');
         }
         return order;
       } catch (e) {
-        toast.error("Đặt hàng thất bại");
+        toast.error('Đặt hàng thất bại');
         throw e;
       } finally {
         setCreating(false);
       }
     },
-    [cart],
+    [cart]
   );
 
   const value = useMemo(
@@ -72,7 +82,7 @@ export function OrderProvider({ children }) {
       lastOrder,
       createOrder,
     }),
-    [creating, lastOrder, createOrder],
+    [creating, lastOrder, createOrder]
   );
 
   return (
