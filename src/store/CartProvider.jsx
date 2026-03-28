@@ -74,16 +74,13 @@ export function CartProvider({ children }) {
     return lines.reduce((sum, l) => sum + Number(l?.quantity || 0), 0);
   }, [lines]);
 
-  // Tạm tính (chưa tax)
+  // Tạm tính
   const subtotal = useMemo(() => {
     return lines.reduce((sum, l) => sum + l.productId.price * l.quantity, 0);
   }, [lines]);
 
-  // Thuế 8%
-  const tax = useMemo(() => subtotal * 0.08, [subtotal]);
-
   // Tổng tiền
-  const total = useMemo(() => subtotal + tax, [subtotal, tax]);
+  const total = useMemo(() => subtotal, [subtotal]);
 
   /**
    * ===============================
@@ -158,16 +155,22 @@ export function CartProvider({ children }) {
 
       try {
         const current = lines.find((l) => l.productId._id === productId);
-        await updateCartItemQuantity(productId, current.quantity + 1, canteenId);
+        await updateCartItemQuantity(
+          productId,
+          current.quantity + 1,
+          canteenId
+        );
       } catch (err) {
         reloadCart();
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          "Cập nhật số lượng thất bại";
-        toast.error("Không thể tăng số lượng", { description: message });
+          'Cập nhật số lượng thất bại';
+        toast.error('Không thể tăng số lượng', { description: message });
       }
-    }, [lines, reloadCart, canteenId]);
+    },
+    [lines, reloadCart, canteenId]
+  );
 
   /**
    * ===============================
@@ -189,16 +192,22 @@ export function CartProvider({ children }) {
 
       try {
         const current = lines.find((l) => l.productId._id === productId);
-        await updateCartItemQuantity(productId, current.quantity - 1, canteenId);
+        await updateCartItemQuantity(
+          productId,
+          current.quantity - 1,
+          canteenId
+        );
       } catch (err) {
         reloadCart();
         const message =
           err?.response?.data?.message ||
           err?.message ||
-          "Cập nhật số lượng thất bại";
-        toast.error("Không thể giảm số lượng", { description: message });
+          'Cập nhật số lượng thất bại';
+        toast.error('Không thể giảm số lượng', { description: message });
       }
-    }, [lines, reloadCart, canteenId]);
+    },
+    [lines, reloadCart, canteenId]
+  );
 
   /**
    * ===============================
@@ -216,7 +225,9 @@ export function CartProvider({ children }) {
       } catch {
         setLines(backup);
       }
-    }, [lines, canteenId]);
+    },
+    [lines, canteenId]
+  );
 
   const clearCart = useCallback(async () => {
     // After external redirects (e.g., MoMo), local `canteenId` may not be
@@ -244,7 +255,6 @@ export function CartProvider({ children }) {
       error,
       count,
       subtotal,
-      tax,
       total,
       canteenId,
       addItem,
@@ -260,7 +270,6 @@ export function CartProvider({ children }) {
       error,
       count,
       subtotal,
-      tax,
       total,
       canteenId,
       addItem,

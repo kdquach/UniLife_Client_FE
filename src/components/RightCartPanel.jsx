@@ -1,24 +1,18 @@
-import { useMemo, useState } from "react";
-import clsx from "clsx";
-import { useCartStore } from "@/store/cart.store.js";
-import { useRightPanel } from "@/store/rightPanel.store.js";
-import { useCampusStore } from "@/store/useCampusStore.js";
-import MaterialIcon from "@/components/MaterialIcon.jsx";
-import momoLogo from "@/assets/images/momo.png";
-import sepayLogo from "@/assets/images/sepay.png";
-import momoActiveLogo from "@/assets/images/momo-active.png";
-import sepayActiveLogo from "@/assets/images/sepay-active.png";
-import CartItemCard from "@/components/cart/CartItemCard.jsx";
-import OrderSummaryCard from "@/components/cart/OrderSummaryCard.jsx";
-import VoucherInput from "@/components/cart/VoucherInput.jsx";
+import { useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { useCartStore } from '@/store/cart.store.js';
+import { useRightPanel } from '@/store/rightPanel.store.js';
+import { useCampusStore } from '@/store/useCampusStore.js';
+import MaterialIcon from '@/components/MaterialIcon.jsx';
+import CartItemCard from '@/components/cart/CartItemCard.jsx';
+import OrderSummaryCard from '@/components/cart/OrderSummaryCard.jsx';
+import VoucherInput from '@/components/cart/VoucherInput.jsx';
 
 export default function RightCartPanel({ className, allowCollapse = true }) {
   const cart = useCartStore();
   const panel = useRightPanel();
   const { selectedCampus } = useCampusStore();
   const hasItems = cart.count > 0;
-
-  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
 
@@ -35,14 +29,14 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
   }, [cart.total, discountAmount]);
 
   return (
-    <div className={clsx("flex h-full flex-col", className)}>
+    <div className={clsx('flex h-full flex-col', className)}>
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid">
           <h1 className="text-lg   font-semibold text-text">
             Tóm tắt đơn hàng
           </h1>
           <p className="text-xs text-muted">
-            {hasItems ? itemCountLabel : "Chưa có món"}
+            {hasItems ? itemCountLabel : 'Chưa có món'}
           </p>
         </div>
 
@@ -140,7 +134,6 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
 
               <OrderSummaryCard
                 subtotal={cart.subtotal}
-                tax={cart.tax}
                 discount={discountAmount}
                 deliveryFee={deliveryFee}
                 total={finalTotal}
@@ -155,28 +148,27 @@ export default function RightCartPanel({ className, allowCollapse = true }) {
           <button
             type="button"
             className={clsx(
-              "flex h-12 w-full items-center justify-center cursor-pointer",
-              "rounded-2xl text-sm font-semibold text-inverse",
-              "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
-              "shadow-card transition duration-200",
-              "hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20 active:scale-[0.99]",
+              'flex h-12 w-full items-center justify-center cursor-pointer',
+              'rounded-2xl text-sm font-semibold text-inverse',
+              'bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]',
+              'shadow-card transition duration-200',
+              'hover:shadow-lift hover:scale-[1.02] hover:ring-2 hover:ring-primary/20 active:scale-[0.99]'
             )}
             onClick={() => {
               const draft = {
                 id: `draft-${Date.now()}`,
-                code: "DRAFT",
-                status: "pending",
+                code: 'DRAFT',
+                status: 'pending',
                 createdAt: new Date().toISOString(),
                 items: (cart.lines || []).map((l) => ({
                   itemId: l?.productId?._id ?? l?.productId,
                   qty: l?.quantity ?? 1,
-                  name: l?.productId?.name ?? "",
+                  name: l?.productId?.name ?? '',
                   price: l?.productId?.price ?? 0,
-                  image: l?.productId?.image ?? "",
+                  image: l?.productId?.image ?? '',
                 })),
                 summary: {
                   subtotal: cart.subtotal,
-                  tax: cart.tax,
                   discount: discountAmount,
                   total: finalTotal,
                 },

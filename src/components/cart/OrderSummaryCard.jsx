@@ -1,9 +1,8 @@
-import { money } from "@/utils/currency.js";
+import { money } from '@/utils/currency.js';
 
 export default function OrderSummaryCard({
-  title = "Chi tiết thanh toán",
+  title = 'Chi tiết thanh toán',
   subtotal = 0,
-  tax = 0,
   discount = 0,
   deliveryFee = 0,
   total = 0,
@@ -15,10 +14,6 @@ export default function OrderSummaryCard({
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted">Tạm tính</span>
           <span className="font-semibold text-text">{money(subtotal)}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-muted">Thuế (8%)</span>
-          <span className="font-semibold text-text">{money(tax)}</span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-muted">Giảm giá</span>
