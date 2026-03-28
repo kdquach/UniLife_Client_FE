@@ -1,9 +1,8 @@
-import { money } from "@/utils/currency.js";
+import { money } from '@/utils/currency.js';
 
 export default function OrderSummaryCard({
-  title = "Detail Summary",
+  title = 'Detail Summary',
   subtotal = 0,
-  tax = 0,
   discount = 0,
   deliveryFee = 0,
   total = 0,
@@ -17,12 +16,10 @@ export default function OrderSummaryCard({
           <span className="font-semibold text-text">{money(subtotal)}</span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-muted">Tax (8%)</span>
-          <span className="font-semibold text-text">{money(tax)}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-muted">Discount</span>
-          <span className="font-semibold text-text">{discount ? `-${money(discount)}` : money(0)}</span>
+          <span className="font-semibold text-text">
+            {discount ? `-${money(discount)}` : money(0)}
+          </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-muted">Delivery Fee</span>
@@ -31,7 +28,9 @@ export default function OrderSummaryCard({
         <div className="my-4 h-px w-full border-b border-dashed border-divider" />
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold text-text">Total</span>
-          <span className="text-lg font-extrabold text-primary">{money(total)}</span>
+          <span className="text-lg font-extrabold text-primary">
+            {money(total)}
+          </span>
         </div>
       </div>
     </div>

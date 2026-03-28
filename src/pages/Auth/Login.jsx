@@ -1,50 +1,49 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { toast } from "sonner";
-import { GoogleLogin } from "@react-oauth/google";
-import Input from "@/components/Input.jsx";
-import Button from "@/components/Button.jsx";
-import { login, loginWithGoogle } from "@/services/auth.service";
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import { GoogleLogin } from '@react-oauth/google';
+import Input from '@/components/Input.jsx';
+import Button from '@/components/Button.jsx';
+import { login, loginWithGoogle } from '@/services/auth.service';
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   async function onSubmit(e) {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
       const response = await login({ email, password });
-      console.log("Login successful:", response);
+      console.log('Login successful:', response);
 
       // Hiển thị thông báo thành công
-      toast.success("Đăng nhập thành công!", {
-        description: "Chào mừng bạn quay trở lại UniLife",
+      toast.success('Đăng nhập thành công!', {
+        description: 'Chào mừng bạn quay trở lại UniLife',
         duration: 3000,
       });
 
       // Chuyển hướng sau khi đăng nhập thành công
       setTimeout(() => {
-        navigate("/");
+        navigate('/');
       }, 500);
     } catch (err) {
-      console.error("Login error:", err);
+      console.error('Login error:', err);
       // Xử lý lỗi từ API backend
       const errorMessage =
         err.response?.data?.message ||
         err.message ||
-        "Email hoặc mật khẩu không đúng";
+        'Email hoặc mật khẩu không đúng';
 
       setError(errorMessage);
 
       // Hiển thị thông báo lỗi
-      toast.error("Đăng nhập thất bại", {
+      toast.error('Đăng nhập thất bại', {
         description: errorMessage,
         duration: 4000,
       });
@@ -55,44 +54,43 @@ export default function Login() {
 
   // Handle Google login success
   const handleGoogleSuccess = async (credentialResponse) => {
-    setGoogleLoading(true);
-    setError("");
+    setError('');
 
     try {
       // credentialResponse.credential contains the ID token
       const response = await loginWithGoogle(credentialResponse.credential);
-      console.log("Google login successful:", response);
+      console.log('Google login successful:', response);
 
-      toast.success("Đăng nhập thành công!", {
-        description: "Chào mừng bạn đến với UniLife",
+      toast.success('Đăng nhập thành công!', {
+        description: 'Chào mừng bạn đến với UniLife',
         duration: 3000,
       });
 
       setTimeout(() => {
-        navigate("/");
+        navigate('/');
       }, 500);
     } catch (err) {
-      console.error("Google login error:", err);
+      console.error('Google login error:', err);
       const errorMessage =
         err.response?.data?.message ||
         err.message ||
-        "Đăng nhập bằng Google thất bại";
+        'Đăng nhập bằng Google thất bại';
 
       setError(errorMessage);
-      toast.error("Đăng nhập thất bại", {
+      toast.error('Đăng nhập thất bại', {
         description: errorMessage,
         duration: 4000,
       });
     } finally {
-      setGoogleLoading(false);
+      // Không cần state loading riêng cho Google ở đây
     }
   };
 
   // Handle Google login error
   const handleGoogleError = () => {
-    setError("Đăng nhập bằng Google thất bại");
-    toast.error("Đăng nhập thất bại", {
-      description: "Không thể kết nối với Google. Vui lòng thử lại.",
+    setError('Đăng nhập bằng Google thất bại');
+    toast.error('Đăng nhập thất bại', {
+      description: 'Không thể kết nối với Google. Vui lòng thử lại.',
       duration: 4000,
     });
   };
@@ -167,7 +165,7 @@ export default function Login() {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4"
           >
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
 
           {/* Divider */}
@@ -194,7 +192,7 @@ export default function Login() {
           </div>
 
           <p className="text-center text-sm text-gray-600">
-            Chưa có tài khoản?{" "}
+            Chưa có tài khoản?{' '}
             <Link
               to="/register"
               className="font-medium text-blue-600 hover:text-blue-500"

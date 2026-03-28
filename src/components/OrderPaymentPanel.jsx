@@ -1,19 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import clsx from "clsx";
-import { useCartStore } from "@/store/cart.store.js";
-import { useRightPanel } from "@/store/rightPanel.store.js";
-import { money } from "@/utils/currency.js";
-import MaterialIcon from "@/components/MaterialIcon.jsx";
-import CartItemCard from "@/components/cart/CartItemCard.jsx";
-import OrderSuccessModal from "@/components/order/OrderSuccessModal.jsx";
-import { useOrderStore } from "@/store/order.store.js";
-import momoLogo from "@/assets/images/momo.png";
-import sepayLogo from "@/assets/images/sepay.png";
-import momoActiveLogo from "@/assets/images/momo-active.png";
-import sepayActiveLogo from "@/assets/images/sepay-active.png";
-const { paymentMomo } = await import("@/services/payment.service.js");
-import { useSearchParams } from "react-router-dom";
-import { cleanupFailedPaymentOrder, getOrderById } from "@/services/order.service.js";
+import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { useCartStore } from '@/store/cart.store.js';
+import { useRightPanel } from '@/store/rightPanel.store.js';
+import { money } from '@/utils/currency.js';
+import MaterialIcon from '@/components/MaterialIcon.jsx';
+import CartItemCard from '@/components/cart/CartItemCard.jsx';
+import OrderSuccessModal from '@/components/order/OrderSuccessModal.jsx';
+import { useOrderStore } from '@/store/order.store.js';
+import momoLogo from '@/assets/images/momo.png';
+import sepayLogo from '@/assets/images/sepay.png';
+import momoActiveLogo from '@/assets/images/momo-active.png';
+import sepayActiveLogo from '@/assets/images/sepay-active.png';
+const { paymentMomo } = await import('@/services/payment.service.js');
+import { useSearchParams } from 'react-router-dom';
+import {
+  cleanupFailedPaymentOrder,
+  getOrderById,
+} from '@/services/order.service.js';
 
 function normalizeLines(order) {
   const items = Array.isArray(order) ? order : [];
@@ -21,7 +24,7 @@ function normalizeLines(order) {
     const unit = Number(it.productId.price) || 0;
     const qty = Number(it.quantity) || 1;
     return {
-      lineId: `pay-${order?._id || "x"}-${idx}`,
+      lineId: `pay-${order?._id || 'x'}-${idx}`,
       itemId: it?.productId?._id,
       qty,
       item: { name: it?.productId?.name, image: it?.productId?.image },
@@ -41,13 +44,13 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   /* ---------- đọc kết quả từ MoMo ---------- */
   const paymentResult = useMemo(() => {
     return {
-      orderId: searchParams.get("orderId"),
-      status: searchParams.get("status"), // completed | failed
+      orderId: searchParams.get('orderId'),
+      status: searchParams.get('status'), // completed | failed
     };
   }, [searchParams]);
 
   /* ---------- state ---------- */
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [successOpen, setSuccessOpen] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
 
@@ -60,28 +63,28 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
     const id = paymentResult.orderId;
     if (!id) return;
     (async () => {
-      if (paymentResult.status === "completed") {
+      if (paymentResult.status === 'completed') {
         cart.clearCart();
 
         // Mở modal và đảm bảo có dữ liệu đơn để hiển thị
         setSuccessOrder(
           (prev) =>
-            prev || order.lastOrder || { _id: id, payment: { method: "momo" } },
+            prev || order.lastOrder || { _id: id, payment: { method: 'momo' } }
         );
         setSuccessOpen(true);
-      } else if (paymentResult.status === "failed") {
+      } else if (paymentResult.status === 'failed') {
         // Fallback: ask BE to cleanup unpaid pending MoMo order
         try {
           await cleanupFailedPaymentOrder(id);
         } catch (err) {
           // ignore if already cleaned up / not found
-          console.error("Cleanup failed MoMo order failed", err);
+          console.error('Cleanup failed MoMo order failed', err);
         }
       }
 
       try {
-        localStorage.removeItem("momoPendingOrderId");
-        localStorage.removeItem("momoPendingOrderAt");
+        localStorage.removeItem('momoPendingOrderId');
+        localStorage.removeItem('momoPendingOrderAt');
       } catch {
         // ignore
       }
@@ -96,7 +99,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
     try {
       // 1. Tạo order pending
       const created = await order.createOrder({
-        paymentMethod: "momo",
+        paymentMethod: 'momo',
         voucherCode: draft?.voucherCode,
         campusId: draft?.campusId,
       });
@@ -104,8 +107,8 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
 
       // Persist pending MoMo order for cleanup if user navigates back without callback
       try {
-        localStorage.setItem("momoPendingOrderId", String(created._id));
-        localStorage.setItem("momoPendingOrderAt", String(Date.now()));
+        localStorage.setItem('momoPendingOrderId', String(created._id));
+        localStorage.setItem('momoPendingOrderAt', String(Date.now()));
       } catch {
         // ignore storage failures
       }
@@ -123,23 +126,23 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
         // If we can't redirect to MoMo, cleanup the created pending order
         try {
           await cleanupFailedPaymentOrder(created._id);
-        } catch (e) {
+        } catch {
           // ignore
         }
         try {
-          localStorage.removeItem("momoPendingOrderId");
-          localStorage.removeItem("momoPendingOrderAt");
+          localStorage.removeItem('momoPendingOrderId');
+          localStorage.removeItem('momoPendingOrderAt');
         } catch {
           // ignore
         }
       }
     } catch (err) {
-      console.error("MoMo payment init failed", err);
+      console.error('MoMo payment init failed', err);
     }
   };
   if (!draft) {
     return (
-      <div className={clsx("flex h-full flex-col", className)}>
+      <div className={clsx('flex h-full flex-col', className)}>
         <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
           <div className="grid">
             <h1 className="text-lg font-semibold text-text">Payment</h1>
@@ -187,7 +190,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
   }
 
   return (
-    <div className={clsx("flex h-full flex-col", className)}>
+    <div className={clsx('flex h-full flex-col', className)}>
       <div className="flex items-center justify-between bg-white/70 backdrop-blur px-5 py-6">
         <div className="grid">
           <h1 className="text-lg font-semibold text-text">Order Payment</h1>
@@ -229,9 +232,19 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
             <h3 className="text-sm font-semibold text-text">Payment method</h3>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: "cash", label: "Cash", icon: "payments" },
-                { key: "momo", label: "MoMo", logo: momoLogo, activeLogo: momoActiveLogo },
-                { key: "sepay", label: "Sepay", logo: sepayLogo, activeLogo: sepayActiveLogo },
+                { key: 'cash', label: 'Cash', icon: 'payments' },
+                {
+                  key: 'momo',
+                  label: 'MoMo',
+                  logo: momoLogo,
+                  activeLogo: momoActiveLogo,
+                },
+                {
+                  key: 'sepay',
+                  label: 'Sepay',
+                  logo: sepayLogo,
+                  activeLogo: sepayActiveLogo,
+                },
               ].map((m) => {
                 const active = paymentMethod === m.key;
                 return (
@@ -240,10 +253,10 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                     type="button"
                     onClick={() => setPaymentMethod(m.key)}
                     className={clsx(
-                      "grid h-14 place-items-center rounded-xl px-2 transition",
+                      'grid h-14 place-items-center rounded-xl px-2 transition',
                       active
-                        ? "bg-primary text-inverse"
-                        : "bg-surfaceMuted text-text hover:bg-surfaceMuted/80",
+                        ? 'bg-primary text-inverse'
+                        : 'bg-surfaceMuted text-text hover:bg-surfaceMuted/80'
                     )}
                   >
                     <span className="grid place-items-center">
@@ -258,16 +271,16 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                           <MaterialIcon
                             name={m.icon}
                             className={clsx(
-                              "text-[18px]",
-                              active ? "text-inverse" : "text-muted",
+                              'text-[18px]',
+                              active ? 'text-inverse' : 'text-muted'
                             )}
                           />
                         )}
                       </span>
                       <span
                         className={clsx(
-                          "text-[11px] font-semibold",
-                          active ? "text-inverse" : "text-text",
+                          'text-[11px] font-semibold',
+                          active ? 'text-inverse' : 'text-text'
                         )}
                       >
                         {m.label}
@@ -302,14 +315,14 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
         <button
           type="button"
           className={clsx(
-            "flex h-12 w-full items-center justify-center",
-            "rounded-2xl text-sm font-semibold text-inverse",
-            "bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]",
-            "shadow-card transition duration-200",
-            "hover:shadow-lift active:scale-[0.99]",
+            'flex h-12 w-full items-center justify-center',
+            'rounded-2xl text-sm font-semibold text-inverse',
+            'bg-[linear-gradient(135deg,var(--primary),var(--primary-hover))]',
+            'shadow-card transition duration-200',
+            'hover:shadow-lift active:scale-[0.99]'
           )}
           onClick={async () => {
-            if (paymentMethod === "momo") {
+            if (paymentMethod === 'momo') {
               await handlePaymentMomo();
               // Wait for MoMo callback to confirm status; don't clear cart here
               return;
@@ -319,7 +332,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                 voucherCode: draft?.voucherCode,
                 campusId: draft?.campusId,
               });
-              console.log("🚀 ~ OrderPaymentPanel ~ created:", created);
+              console.log('🚀 ~ OrderPaymentPanel ~ created:', created);
               if (created) {
                 // Fetch full order to populate canteen info for detail view
                 let full = created;
@@ -328,7 +341,7 @@ export default function OrderPaymentPanel({ className, allowCollapse = true }) {
                   full = resp?.data?.order || created;
                 } catch (e) {
                   // fallback if fetch fails
-                  console.error("Fallback: using created order data", e);
+                  console.error('Fallback: using created order data', e);
                 }
                 setSuccessOrder(full);
                 setSuccessOpen(true);

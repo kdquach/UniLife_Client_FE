@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
-import { OrderContext } from "./order.context";
-import { createOrder as apiCreateOrder } from "@/services/order.service";
-import { toast } from "sonner";
-import { useCartStore } from "@/store/cart.store.js";
+import { useCallback, useMemo, useState } from 'react';
+import { OrderContext } from './order.context';
+import { createOrder as apiCreateOrder } from '@/services/order.service';
+import { toast } from 'sonner';
+import { useCartStore } from '@/store/cart.store.js';
 
 export function OrderProvider({ children }) {
   const cart = useCartStore();
@@ -13,7 +13,7 @@ export function OrderProvider({ children }) {
   const createOrder = useCallback(
     async ({ paymentMethod, note, voucherCode, campusId }) => {
       if (cart.lines.length === 0) {
-        toast.error("Giỏ hàng trống");
+        toast.error('Giỏ hàng trống');
         return null;
       }
 
@@ -23,7 +23,7 @@ export function OrderProvider({ children }) {
           canteenId: cart.canteenId,
           items: cart.lines.map((l) => ({
             productId: l.productId._id,
-            productName: l.productId.name ?? "",
+            productName: l.productId.name ?? '',
             quantity: l.quantity ?? 1,
             price: l.productId.price ?? 0,
           })),
@@ -31,7 +31,6 @@ export function OrderProvider({ children }) {
           note,
           summary: {
             subtotal: cart.subtotal,
-            tax: cart.tax,
             total: cart.total,
           },
         };
@@ -49,16 +48,16 @@ export function OrderProvider({ children }) {
         const order = res.data.order;
 
         setLastOrder(order);
-        toast.success("Đặt hàng thành công");
+        toast.success('Đặt hàng thành công');
         return order;
       } catch (e) {
-        toast.error("Đặt hàng thất bại");
+        toast.error('Đặt hàng thất bại');
         throw e;
       } finally {
         setCreating(false);
       }
     },
-    [cart],
+    [cart]
   );
 
   const value = useMemo(
@@ -67,7 +66,7 @@ export function OrderProvider({ children }) {
       lastOrder,
       createOrder,
     }),
-    [creating, lastOrder, createOrder],
+    [creating, lastOrder, createOrder]
   );
 
   return (
